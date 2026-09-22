@@ -7,10 +7,12 @@ import { MCPackError } from './errors.js';
 const name = z.string().regex(/^[A-Za-z0-9_-]{1,64}$/);
 const json = z.json();
 const object = z.record(z.string(), json);
+
 const binding = {
   worker: name,
   handler: name,
 };
+
 const WorkerSchema = z
   .object({
     runtime: z.literal('node'),
@@ -86,10 +88,12 @@ export const ManifestSchema = z
 
 export type Manifest = z.infer<typeof ManifestSchema>;
 export type WorkerDefinition = Manifest['workers'][string];
+
 export interface LoadedProject {
   manifest: Manifest;
   root: string;
 }
+
 export const validator = new Ajv2020({ strict: true, allErrors: true, validateFormats: false });
 
 export async function loadProject(filename: string): Promise<LoadedProject> {
@@ -97,30 +101,43 @@ export async function loadProject(filename: string): Promise<LoadedProject> {
     const path = await realpath(filename);
     const root = dirname(path);
     const manifest = ManifestSchema.parse(JSON.parse(await readFile(path, 'utf8')));
+
     if (Object.keys(manifest.workers).length === 0)
       throw new Error('At least one worker is required');
+
     for (const category of ['tools', 'resources', 'prompts'] as const) {
       const names = new Set<string>();
       for (const capability of manifest[category]) {
         if (names.has(capability.name))
           throw new Error(`Duplicate ${category} name: ${capability.name}`);
+
         names.add(capability.name);
+
         if (!Object.hasOwn(manifest.workers, capability.worker))
           throw new Error(`Unknown worker: ${capability.worker}`);
       }
     }
+
     const uris = manifest.resources.map((resource) => resource.uri);
-    if (new Set(uris).size !== uris.length) throw new Error('Duplicate resource URI');
+
+    if (new Set(uris).size !== uris.length)
+      throw new Error('Duplicate resource URI');
+
     for (const prompt of manifest.prompts) {
       if (new Set(prompt.arguments.map((arg) => arg.name)).size !== prompt.arguments.length)
         throw new Error(`Duplicate prompt argument: ${prompt.name}`);
     }
-    for (const tool of manifest.tools) validator.compile(tool.inputSchema);
+
+    for (const tool of manifest.tools)
+      validator.compile(tool.inputSchema);
+
     for (const worker of Object.values(manifest.workers)) {
       if (isAbsolute(worker.module))
         throw new Error('Worker modules must use project-relative paths');
+
       const module = await realpath(resolve(root, worker.module));
       const rel = relative(root, module);
+
       if (
         rel === '..' ||
         rel.startsWith(`..${process.platform === 'win32' ? '\\' : '/'}`) ||
@@ -128,13 +145,12 @@ export async function loadProject(filename: string): Promise<LoadedProject> {
       ) {
         throw new Error('Worker module resolves outside the project');
       }
+
       worker.module = module;
     }
+
     return { manifest, root };
   } catch (error) {
-    throw new MCPackError(
-      'INVALID_MANIFEST',
-      error instanceof Error ? error.message : String(error),
-    );
+    throw new MCPackError('INVALID_MANIFEST', error instanceof Error ? error.message : String(error));
   }
 }

@@ -15,10 +15,7 @@ export type ErrorCode =
 
 /** Infrastructure errors are distinct from tool business results with isError=true. */
 export class MCPackError extends Error {
-  constructor(
-    public readonly code: ErrorCode,
-    message: string,
-  ) {
+  constructor(public readonly code: ErrorCode, message: string) {
     super(message);
     this.name = 'MCPackError';
   }

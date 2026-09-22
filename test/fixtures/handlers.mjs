@@ -1,10 +1,13 @@
 import { writeFile } from 'node:fs/promises';
+
 export async function createWorker(context) {
   let count = 0;
+
   const result = (value) => ({
     content: [{ type: 'text', text: String(value) }],
     structuredContent: { count, pid: process.pid, worker: context.workerId },
   });
+
   return {
     tools: {
       async probe({ action = 'count', delay = 0 }) {
@@ -14,7 +17,13 @@ export async function createWorker(context) {
         if (action === 'invalid') return { content: 'wrong' };
         if (action === 'bigint') return { content: [], structuredContent: { value: 1n } };
         if (action === 'business')
-          return { content: [{ type: 'text', text: 'Denied by business rule' }], isError: true };
+          return {
+            content: [{
+              type: 'text',
+              text: 'Denied by business rule'
+            }],
+            isError: true
+          };
         if (action === 'env')
           return {
             content: [
@@ -28,6 +37,7 @@ export async function createWorker(context) {
               },
             ],
           };
+
         console.log('This must not reach MCP stdout');
         await new Promise((resolve) => setTimeout(resolve, delay));
         count += 1;

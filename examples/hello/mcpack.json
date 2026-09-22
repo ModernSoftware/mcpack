@@ -3,8 +3,15 @@
   "name": "mcpack-hello",
   "version": "1.0.0",
   "workers": {
-    "main": { "runtime": "node", "module": "./handlers.mjs", "config": { "greeting": "Hello" } },
-    "auxiliary": { "runtime": "node", "module": "./handlers.mjs" }
+    "main": {
+      "runtime": "node",
+      "module": "./handlers.mjs",
+      "config": { "greeting": "Hello" }
+    },
+    "auxiliary": {
+      "runtime": "node",
+      "module": "./handlers.mjs"
+    }
   },
   "tools": [
     {

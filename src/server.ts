@@ -7,7 +7,9 @@ async function invoke<T>(operation: () => Promise<T>): Promise<T> {
   try {
     return await operation();
   } catch (error) {
-    if (!(error instanceof MCPackError)) throw new ProtocolError(-32603, 'Internal MCPack error');
+    if (!(error instanceof MCPackError))
+      throw new ProtocolError(-32603, 'Internal MCPack error');
+
     const invalid = ['INVALID_ARGUMENTS', 'NOT_FOUND'].includes(error.code);
     throw new ProtocolError(invalid ? -32602 : -32603, error.message, { mcpackCode: error.code });
   }
@@ -22,6 +24,7 @@ export function createMcpServer(runtime: MCPackRuntime): Server {
       capabilities: { tools: {}, resources: {}, prompts: {} },
     },
   );
+
   server.setRequestHandler('tools/list', async () => ({
     tools: manifest.tools.map((tool) => ({
       name: tool.name,
@@ -29,6 +32,7 @@ export function createMcpServer(runtime: MCPackRuntime): Server {
       inputSchema: { ...tool.inputSchema, type: 'object' as const },
     })),
   }));
+
   server.setRequestHandler('resources/list', async () => ({
     resources: manifest.resources.map((resource) => ({
       name: resource.name,
@@ -37,7 +41,9 @@ export function createMcpServer(runtime: MCPackRuntime): Server {
       mimeType: resource.mimeType,
     })),
   }));
+
   server.setRequestHandler('resources/templates/list', async () => ({ resourceTemplates: [] }));
+
   server.setRequestHandler('prompts/list', async () => ({
     prompts: manifest.prompts.map((prompt) => ({
       name: prompt.name,
@@ -45,6 +51,7 @@ export function createMcpServer(runtime: MCPackRuntime): Server {
       arguments: prompt.arguments,
     })),
   }));
+
   server.setRequestHandler('tools/call', (request, context) =>
     invoke(async () => ({
       ...(await runtime.callTool(
@@ -54,11 +61,13 @@ export function createMcpServer(runtime: MCPackRuntime): Server {
       )),
     })),
   );
+
   server.setRequestHandler('resources/read', (request, context) =>
     invoke(async () => ({
       ...(await runtime.readResource(request.params.uri, context.mcpReq.signal)),
     })),
   );
+
   server.setRequestHandler('prompts/get', (request, context) =>
     invoke(async () => ({
       ...(await runtime.getPrompt(
@@ -68,5 +77,6 @@ export function createMcpServer(runtime: MCPackRuntime): Server {
       )),
     })),
   );
+
   return server;
 }

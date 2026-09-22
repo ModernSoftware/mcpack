@@ -2,6 +2,7 @@
 export async function createWorker(context) {
   let greetings = 0;
   context.log('Worker ready');
+
   return {
     tools: {
       async greet({ name }) {

@@ -10,6 +10,7 @@ async function fixture(t, overrides = {}) {
   t.after(() => rm(root, { recursive: true, force: true }));
   await copyFile(new URL('./fixtures/handlers.mjs', import.meta.url), join(root, 'handlers.mjs'));
   const definition = { runtime: 'node', module: './handlers.mjs', timeoutMs: 2000, ...overrides };
+
   const manifest = {
     schemaVersion: 1,
     name: 'test',
@@ -26,10 +27,12 @@ async function fixture(t, overrides = {}) {
       },
     })),
   };
+
   const path = join(root, 'mcpack.json');
   await writeFile(path, JSON.stringify(manifest));
   const runtime = await MCPackRuntime.load(path);
   t.after(() => runtime.close());
+
   return { runtime, root, path, manifest };
 }
 const code = (expected) => (error) => error.code === expected;
@@ -39,14 +42,20 @@ test('worker state persists; named workers have separate processes and run concu
   await runtime.start();
   const first = await runtime.callTool('primary');
   const second = await runtime.callTool('primary');
+
   assert.equal(second.structuredContent.count, 2);
   assert.equal(first.structuredContent.pid, second.structuredContent.pid);
+
   const other = await runtime.callTool('secondary');
+
   assert.notEqual(first.structuredContent.pid, other.structuredContent.pid);
+
   let slowFinished = false;
+
   const slow = runtime.callTool('primary', { delay: 200 }).then(() => {
     slowFinished = true;
   });
+
   await runtime.callTool('secondary');
   assert.equal(slowFinished, false);
   await slow;
@@ -69,10 +78,12 @@ test('FIFO, bounded queue and queued cancellation leave active worker usable', a
 test('active timeout fails queued work without retry; other worker survives', async (t) => {
   const { runtime } = await fixture(t, { timeoutMs: 100 });
   await runtime.start();
+
   const hung = assert.rejects(
     runtime.callTool('primary', { action: 'hang' }),
     code('DEADLINE_EXCEEDED'),
   );
+
   const queued = assert.rejects(runtime.callTool('primary'), code('WORKER_UNAVAILABLE'));
   await Promise.all([hung, queued]);
   await assert.rejects(runtime.callTool('primary'), code('WORKER_UNAVAILABLE'));
@@ -83,10 +94,12 @@ test('active cancellation retires worker and queued requests settle', async (t) 
   const { runtime } = await fixture(t);
   await runtime.start();
   const controller = new AbortController();
+
   const active = assert.rejects(
     runtime.callTool('primary', { action: 'hang' }, controller.signal),
     code('CANCELLED'),
   );
+
   const queued = assert.rejects(runtime.callTool('primary'), code('WORKER_UNAVAILABLE'));
   controller.abort();
   await Promise.all([active, queued]);
@@ -105,10 +118,12 @@ test('validation, private exceptions and business errors are distinct', async (t
   await assert.rejects(runtime.callTool('primary', { delay: -1 }), code('INVALID_ARGUMENTS'));
   await assert.rejects(runtime.callTool('missing'), code('NOT_FOUND'));
   await assert.rejects(runtime.callTool('primary', { action: 'invalid' }), code('INVALID_RESULT'));
+
   await assert.rejects(
     runtime.callTool('primary', { action: 'throw' }),
     (error) => error.code === 'HANDLER_FAILED' && !error.message.includes('PRIVATE_EXCEPTION'),
   );
+
   await assert.rejects(runtime.callTool('primary', { action: 'bigint' }), code('INVALID_RESULT'));
   assert.equal((await runtime.callTool('primary', { action: 'business' })).isError, true);
   await runtime.callTool('primary');
@@ -117,16 +132,20 @@ test('validation, private exceptions and business errors are distinct', async (t
 test('environment forwarding is explicit', async (t) => {
   process.env.MCPACK_TEST_INHERITED = 'allowed';
   process.env.MCPACK_TEST_HIDDEN = 'hidden';
+
   t.after(() => {
     delete process.env.MCPACK_TEST_INHERITED;
     delete process.env.MCPACK_TEST_HIDDEN;
   });
+
   const { runtime } = await fixture(t, {
     inheritEnv: ['MCPACK_TEST_INHERITED'],
     env: { MCPACK_TEST_EXPLICIT: 'override' },
   });
+
   await runtime.start();
   const result = await runtime.callTool('primary', { action: 'env' });
+
   assert.deepEqual(JSON.parse(result.content[0].text), {
     inherited: 'allowed',
     explicit: 'override',
@@ -181,10 +200,12 @@ test(
   async (t) => {
     const { runtime } = await fixture(t, { shutdownTimeoutMs: 100 });
     await runtime.start();
+
     const active = assert.rejects(
       runtime.callTool('primary', { action: 'hang' }),
       code('RUNTIME_CLOSED'),
     );
+
     const queued = assert.rejects(runtime.callTool('primary'), code('RUNTIME_CLOSED'));
     await runtime.close();
     await Promise.all([active, queued]);

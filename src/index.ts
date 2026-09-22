@@ -11,6 +11,7 @@ export type {
   NativeWorker,
   CreateWorker,
 } from './contracts.js';
+
 export { MCPackError } from './errors.js';
 export type { ErrorCode } from './errors.js';
 export { ManifestSchema, loadProject } from './manifest.js';
