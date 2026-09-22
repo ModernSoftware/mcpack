@@ -10,13 +10,19 @@ export class MCPackRuntime {
   private starting?: Promise<void>;
   private closing?: Promise<void>;
 
-  private constructor(readonly project: LoadedProject, diagnostic: Diagnostic,) {
+  private constructor(
+    readonly project: LoadedProject,
+    diagnostic: Diagnostic,
+  ) {
     for (const [id, definition] of Object.entries(project.manifest.workers)) {
       this.workers.set(id, new NodeWorker(id, definition, project, diagnostic));
     }
   }
 
-  static async load(path: string, options: { diagnostic?: Diagnostic } = {}): Promise<MCPackRuntime> {
+  static async load(
+    path: string,
+    options: { diagnostic?: Diagnostic } = {},
+  ): Promise<MCPackRuntime> {
     return new MCPackRuntime(await loadProject(path), options.diagnostic ?? (() => {}));
   }
 
@@ -24,8 +30,7 @@ export class MCPackRuntime {
     if (this.state === 'closed')
       return Promise.reject(new MCPackError('RUNTIME_CLOSED', 'Runtime closed'));
 
-    if (this.starting)
-      return this.starting;
+    if (this.starting) return this.starting;
 
     this.state = 'starting';
     this.starting = (async () => {
@@ -58,14 +63,13 @@ export class MCPackRuntime {
         'Runtime is not ready',
       );
 
-      return this.workers.get(id)!;
+    return this.workers.get(id)!;
   }
 
   async callTool(name: string, args: JsonObject = {}, signal?: AbortSignal): Promise<ToolResult> {
     const tool = this.project.manifest.tools.find((item) => item.name === name);
 
-    if (!tool)
-      throw new MCPackError('NOT_FOUND', `Unknown tool: ${name}`);
+    if (!tool) throw new MCPackError('NOT_FOUND', `Unknown tool: ${name}`);
     if (!validator.validate(tool.inputSchema, args))
       throw new MCPackError('INVALID_ARGUMENTS', 'Tool arguments do not match inputSchema');
 
@@ -73,8 +77,7 @@ export class MCPackRuntime {
       await this.worker(tool.worker).call('tools', tool.handler, args, signal),
     );
 
-    if (!result.success)
-      throw new MCPackError('INVALID_RESULT', 'Tool returned an invalid result');
+    if (!result.success) throw new MCPackError('INVALID_RESULT', 'Tool returned an invalid result');
 
     return result.data;
   }
@@ -82,8 +85,7 @@ export class MCPackRuntime {
   async readResource(uri: string, signal?: AbortSignal): Promise<ResourceResult> {
     const resource = this.project.manifest.resources.find((item) => item.uri === uri);
 
-    if (!resource)
-      throw new MCPackError('NOT_FOUND', `Unknown resource: ${uri}`);
+    if (!resource) throw new MCPackError('NOT_FOUND', `Unknown resource: ${uri}`);
 
     const result = resourceResult.safeParse(
       await this.worker(resource.worker).call('resources', resource.handler, { uri }, signal),
@@ -95,10 +97,13 @@ export class MCPackRuntime {
     return result.data;
   }
 
-  async getPrompt(name: string, args: Record<string, string> = {}, signal?: AbortSignal): Promise<PromptResult> {
+  async getPrompt(
+    name: string,
+    args: Record<string, string> = {},
+    signal?: AbortSignal,
+  ): Promise<PromptResult> {
     const prompt = this.project.manifest.prompts.find((item) => item.name === name);
-    if (!prompt)
-      throw new MCPackError('NOT_FOUND', `Unknown prompt: ${name}`);
+    if (!prompt) throw new MCPackError('NOT_FOUND', `Unknown prompt: ${name}`);
 
     if (
       Object.entries(args).some(
@@ -109,7 +114,9 @@ export class MCPackRuntime {
     )
       throw new MCPackError('INVALID_ARGUMENTS', 'Invalid prompt arguments');
 
-      const result = promptResult.safeParse(await this.worker(prompt.worker).call('prompts', prompt.handler, args, signal));
+    const result = promptResult.safeParse(
+      await this.worker(prompt.worker).call('prompts', prompt.handler, args, signal),
+    );
 
     if (!result.success)
       throw new MCPackError('INVALID_RESULT', 'Prompt returned an invalid result');
