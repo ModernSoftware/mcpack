@@ -18,11 +18,13 @@ export async function createWorker(context) {
         if (action === 'bigint') return { content: [], structuredContent: { value: 1n } };
         if (action === 'business')
           return {
-            content: [{
-              type: 'text',
-              text: 'Denied by business rule'
-            }],
-            isError: true
+            content: [
+              {
+                type: 'text',
+                text: 'Denied by business rule',
+              },
+            ],
+            isError: true,
           };
         if (action === 'env')
           return {

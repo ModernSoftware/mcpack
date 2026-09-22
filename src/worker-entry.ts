@@ -8,13 +8,11 @@ let active: { id: string; controller: AbortController; task: Promise<void> } | u
 let closing = false;
 
 function send(message: object): void {
-  if (process.connected)
-    process.send?.({ v: 1, ...message });
+  if (process.connected) process.send?.({ v: 1, ...message });
 }
 
 async function close(): Promise<void> {
-  if (closing)
-    return;
+  if (closing) return;
 
   closing = true;
   active?.controller.abort();
@@ -29,8 +27,7 @@ process.on('message', async (raw) => {
     const message = parentMessage.parse(raw);
 
     if (message.type === 'init') {
-      if (worker)
-        throw new Error('Worker already initialized');
+      if (worker) throw new Error('Worker already initialized');
 
       context = {
         workerId: message.workerId,
@@ -62,15 +59,13 @@ process.on('message', async (raw) => {
 
       send({ type: 'ready' });
     } else if (message.type === 'call') {
-      if (!worker || active || closing)
-        throw new Error('Worker is not ready to accept a call');
+      if (!worker || active || closing) throw new Error('Worker is not ready to accept a call');
 
       const table = worker[message.kind];
       const handler =
         table && Object.hasOwn(table, message.handler) ? table[message.handler] : undefined;
 
-      if (!handler)
-        throw new Error('Handler not found');
+      if (!handler) throw new Error('Handler not found');
 
       const controller = new AbortController();
 
@@ -97,7 +92,9 @@ process.on('message', async (raw) => {
             return;
           }
 
-          const schema = { tools: toolResult, resources: resourceResult, prompts: promptResult }[message.kind];
+          const schema = { tools: toolResult, resources: resourceResult, prompts: promptResult }[
+            message.kind
+          ];
           const parsed = schema.safeParse(result);
 
           if (!parsed.success) {
@@ -126,8 +123,7 @@ process.on('message', async (raw) => {
 
       active = { id: message.id, controller, task };
     } else if (message.type === 'cancel') {
-      if (active?.id === message.id)
-        active.controller.abort();
+      if (active?.id === message.id) active.controller.abort();
     } else await close();
   } catch (error) {
     process.stderr.write(`${String(error)}\n`);

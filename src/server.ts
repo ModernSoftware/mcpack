@@ -7,8 +7,7 @@ async function invoke<T>(operation: () => Promise<T>): Promise<T> {
   try {
     return await operation();
   } catch (error) {
-    if (!(error instanceof MCPackError))
-      throw new ProtocolError(-32603, 'Internal MCPack error');
+    if (!(error instanceof MCPackError)) throw new ProtocolError(-32603, 'Internal MCPack error');
 
     const invalid = ['INVALID_ARGUMENTS', 'NOT_FOUND'].includes(error.code);
     throw new ProtocolError(invalid ? -32602 : -32603, error.message, { mcpackCode: error.code });

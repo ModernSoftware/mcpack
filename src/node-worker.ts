@@ -37,8 +37,7 @@ export class NodeWorker {
   ) {}
 
   async start(): Promise<void> {
-    if (this.state !== 'new')
-      throw new MCPackError('WORKER_UNAVAILABLE', 'Worker already started');
+    if (this.state !== 'new') throw new MCPackError('WORKER_UNAVAILABLE', 'Worker already started');
 
     this.state = 'starting';
     const env: NodeJS.ProcessEnv = {};
@@ -54,9 +53,7 @@ export class NodeWorker {
       ...this.definition.inheritEnv,
     ];
 
-    for (const key of inherited)
-      if (process.env[key] !== undefined)
-        env[key] = process.env[key];
+    for (const key of inherited) if (process.env[key] !== undefined) env[key] = process.env[key];
 
     Object.assign(env, this.definition.env);
 
@@ -131,10 +128,11 @@ export class NodeWorker {
     signal?: AbortSignal,
   ): Promise<unknown> {
     if (this.state !== 'ready')
-      return Promise.reject(new MCPackError('WORKER_UNAVAILABLE', `Worker ${this.id} is unavailable`));
+      return Promise.reject(
+        new MCPackError('WORKER_UNAVAILABLE', `Worker ${this.id} is unavailable`),
+      );
 
-    if (signal?.aborted)
-      return Promise.reject(new MCPackError('CANCELLED', 'Request cancelled'));
+    if (signal?.aborted) return Promise.reject(new MCPackError('CANCELLED', 'Request cancelled'));
 
     if (this.active && this.queue.length >= this.definition.maxQueue)
       return Promise.reject(new MCPackError('QUEUE_FULL', `Worker ${this.id} queue is full`));
@@ -167,8 +165,7 @@ export class NodeWorker {
   }
 
   private dispatch(): void {
-    if (this.state !== 'ready' || this.active)
-      return;
+    if (this.state !== 'ready' || this.active) return;
 
     this.active = this.queue.shift();
 
@@ -179,8 +176,7 @@ export class NodeWorker {
   }
 
   private receive(raw: unknown): void {
-    if (this.state === 'closed' || this.state === 'failed')
-      return;
+    if (this.state === 'closed' || this.state === 'failed') return;
 
     const parsed = childMessage.safeParse(raw);
 
@@ -208,10 +204,8 @@ export class NodeWorker {
     this.active = undefined;
     pending.cleanup();
 
-    if (message.type === 'error')
-      pending.reject(new MCPackError(message.code, message.message));
-    else
-      pending.resolve(message.result);
+    if (message.type === 'error') pending.reject(new MCPackError(message.code, message.message));
+    else pending.resolve(message.result);
 
     this.dispatch();
   }
@@ -224,12 +218,13 @@ export class NodeWorker {
       this.active = undefined;
 
       // Never reuse a worker whose timed-out handler could still mutate state.
-      this.fail(new MCPackError('WORKER_UNAVAILABLE', 'Worker stopped after cancellation or deadline'));
+      this.fail(
+        new MCPackError('WORKER_UNAVAILABLE', 'Worker stopped after cancellation or deadline'),
+      );
     } else {
       const index = this.queue.findIndex((item) => item.id === id);
 
-      if (index < 0)
-        return;
+      if (index < 0) return;
 
       const [pending] = this.queue.splice(index, 1);
       pending.cleanup();
@@ -242,8 +237,7 @@ export class NodeWorker {
       return this.fail(new MCPackError('WORKER_EXITED', 'Worker disconnected'));
     try {
       this.child.send({ v: 1, ...message }, (error) => {
-        if (error)
-          this.fail(new MCPackError('WORKER_PROTOCOL_ERROR', 'Worker IPC send failed'));
+        if (error) this.fail(new MCPackError('WORKER_PROTOCOL_ERROR', 'Worker IPC send failed'));
       });
     } catch {
       this.fail(new MCPackError('WORKER_PROTOCOL_ERROR', 'Worker IPC serialization failed'));
@@ -265,8 +259,7 @@ export class NodeWorker {
   }
 
   private fail(error: MCPackError): void {
-    if (this.state === 'failed' || this.state === 'closed')
-      return;
+    if (this.state === 'failed' || this.state === 'closed') return;
 
     this.state = 'failed';
     this.rejectPending(error);
@@ -276,17 +269,14 @@ export class NodeWorker {
   }
 
   close(): Promise<void> {
-    if (this.closing)
-      return this.closing;
+    if (this.closing) return this.closing;
 
     const wasReady = this.state === 'ready';
     this.state = 'closed';
     this.rejectPending(new MCPackError('RUNTIME_CLOSED', 'Runtime closed'));
 
-    if (wasReady)
-      this.send({ type: 'close' });
-    else
-      this.child?.kill('SIGTERM');
+    if (wasReady) this.send({ type: 'close' });
+    else this.child?.kill('SIGTERM');
 
     this.closing = (async () => {
       const timer = setTimeout(

@@ -1,13 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, copyFile, writeFile, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, copyFile, writeFile, readFile, rm, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { MCPackRuntime, loadProject } from '../dist/index.js';
 
 async function fixture(t, overrides = {}) {
   const root = await mkdtemp(join(tmpdir(), 'mcpack-'));
-  t.after(() => rm(root, { recursive: true, force: true }));
+  const runtimes = [];
+  // Windows keeps a live process's working directory locked. Stop every
+  // runtime before removing its project, including after an assertion fails.
+  t.after(async () => {
+    await Promise.all(runtimes.map((runtime) => runtime.close()));
+    await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  });
   await copyFile(new URL('./fixtures/handlers.mjs', import.meta.url), join(root, 'handlers.mjs'));
   const definition = { runtime: 'node', module: './handlers.mjs', timeoutMs: 2000, ...overrides };
 
@@ -30,10 +36,14 @@ async function fixture(t, overrides = {}) {
 
   const path = join(root, 'mcpack.json');
   await writeFile(path, JSON.stringify(manifest));
-  const runtime = await MCPackRuntime.load(path);
-  t.after(() => runtime.close());
+  const loadRuntime = async () => {
+    const runtime = await MCPackRuntime.load(path);
+    runtimes.push(runtime);
+    return runtime;
+  };
+  const runtime = await loadRuntime();
 
-  return { runtime, root, path, manifest };
+  return { runtime, root, path, manifest, loadRuntime };
 }
 const code = (expected) => (error) => error.code === expected;
 
@@ -153,12 +163,11 @@ test('environment forwarding is explicit', async (t) => {
 });
 
 test('graceful shutdown calls factory cleanup and is idempotent', async (t) => {
-  const { runtime, root, path, manifest } = await fixture(t);
+  const { runtime, root, path, manifest, loadRuntime } = await fixture(t);
   const marker = join(root, 'closed.txt');
   manifest.workers.primary.config = { marker };
   await writeFile(path, JSON.stringify(manifest));
-  const configured = await MCPackRuntime.load(path);
-  t.after(() => configured.close());
+  const configured = await loadRuntime();
   await configured.start();
   await configured.close();
   await configured.close();
@@ -216,4 +225,23 @@ test('shutdown forces hung cleanup hooks to exit', { timeout: 5000 }, async (t) 
   const { runtime } = await fixture(t, { config: { hangOnClose: true }, shutdownTimeoutMs: 100 });
   await runtime.start();
   await runtime.close();
+});
+
+// Exercises teardown with two live runtimes, rather than closing them in the test.
+test('fixture cleanup stops all registered runtimes before removing their project', async (t) => {
+  let projectRoot;
+  const pids = [];
+  await t.test('leave both runtimes running for teardown', async (child) => {
+    const { runtime, root, loadRuntime } = await fixture(child);
+    projectRoot = root;
+    const second = await loadRuntime();
+    await Promise.all([runtime.start(), second.start()]);
+    for (const instance of [runtime, second]) {
+      for (const worker of ['primary', 'secondary']) {
+        pids.push((await instance.callTool(worker)).structuredContent.pid);
+      }
+    }
+  });
+  await assert.rejects(access(projectRoot), { code: 'ENOENT' });
+  for (const pid of pids) assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' });
 });

@@ -11,7 +11,7 @@ export const toolResult = z
   })
   .strict();
 
-  export const resourceResult = z
+export const resourceResult = z
   .object({
     contents: z.array(
       z.object({ uri: z.string(), mimeType: z.string().optional(), text: z.string() }).strict(),
@@ -19,14 +19,14 @@ export const toolResult = z
   })
   .strict();
 
-  export const promptResult = z
+export const promptResult = z
   .object({
     description: z.string().optional(),
     messages: z.array(z.object({ role: z.enum(['user', 'assistant']), content: text }).strict()),
   })
   .strict();
 
-  export const parentMessage = z.discriminatedUnion('type', [
+export const parentMessage = z.discriminatedUnion('type', [
   z.object({
     v: z.literal(1),
     type: z.literal('init'),

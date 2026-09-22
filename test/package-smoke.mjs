@@ -11,8 +11,7 @@ const exec = promisify(execFile);
 const root = await mkdtemp(join(tmpdir(), 'mcpack-package-'));
 const npmCli = process.env.npm_execpath;
 
-if (!npmCli)
-  throw new Error('Run through npm run test:package');
+if (!npmCli) throw new Error('Run through npm run test:package');
 
 let client;
 
@@ -23,7 +22,7 @@ try {
     { cwd: resolve('.') },
   );
 
-  const packages = JSON.parse(packed.stdout.slice(packed.stdout.indexOf('[\n')));
+  const packages = JSON.parse(packed.stdout.slice(packed.stdout.search(/\[\r?\n/)));
   const archive = join(root, packages[0].filename);
 
   await writeFile(

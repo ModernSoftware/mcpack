@@ -36,9 +36,15 @@ async function main(): Promise<void> {
       process.stdin.pause();
     })());
 
-  process.stdin.once('end', () => { void stop(); });
-  process.once('SIGINT', () => { void stop(); });
-  process.once('SIGTERM', () => { void stop(); });
+  process.stdin.once('end', () => {
+    void stop();
+  });
+  process.once('SIGINT', () => {
+    void stop();
+  });
+  process.once('SIGTERM', () => {
+    void stop();
+  });
 }
 
 main().catch((error) => {

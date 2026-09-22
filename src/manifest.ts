@@ -120,16 +120,14 @@ export async function loadProject(filename: string): Promise<LoadedProject> {
 
     const uris = manifest.resources.map((resource) => resource.uri);
 
-    if (new Set(uris).size !== uris.length)
-      throw new Error('Duplicate resource URI');
+    if (new Set(uris).size !== uris.length) throw new Error('Duplicate resource URI');
 
     for (const prompt of manifest.prompts) {
       if (new Set(prompt.arguments.map((arg) => arg.name)).size !== prompt.arguments.length)
         throw new Error(`Duplicate prompt argument: ${prompt.name}`);
     }
 
-    for (const tool of manifest.tools)
-      validator.compile(tool.inputSchema);
+    for (const tool of manifest.tools) validator.compile(tool.inputSchema);
 
     for (const worker of Object.values(manifest.workers)) {
       if (isAbsolute(worker.module))
@@ -151,6 +149,9 @@ export async function loadProject(filename: string): Promise<LoadedProject> {
 
     return { manifest, root };
   } catch (error) {
-    throw new MCPackError('INVALID_MANIFEST', error instanceof Error ? error.message : String(error));
+    throw new MCPackError(
+      'INVALID_MANIFEST',
+      error instanceof Error ? error.message : String(error),
+    );
   }
 }
