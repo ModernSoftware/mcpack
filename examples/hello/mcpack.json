@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "name": "mcpack-hello",
+  "version": "1.0.0",
+  "workers": {
+    "main": { "runtime": "node", "module": "./handlers.mjs", "config": { "greeting": "Hello" } },
+    "auxiliary": { "runtime": "node", "module": "./handlers.mjs" }
+  },
+  "tools": [
+    {
+      "name": "greet",
+      "description": "Greet someone and count calls in this worker.",
+      "worker": "main",
+      "handler": "greet",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "name": { "type": "string", "minLength": 1 } },
+        "required": ["name"],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "resources": [
+    {
+      "name": "guide",
+      "uri": "mcpack://hello/guide",
+      "mimeType": "text/plain",
+      "worker": "auxiliary",
+      "handler": "guide"
+    }
+  ],
+  "prompts": [
+    {
+      "name": "welcome",
+      "worker": "auxiliary",
+      "handler": "welcome",
+      "arguments": [{ "name": "name", "required": true }]
+    }
+  ]
+}
