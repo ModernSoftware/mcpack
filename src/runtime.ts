@@ -10,10 +10,7 @@ export class MCPackRuntime {
   private starting?: Promise<void>;
   private closing?: Promise<void>;
 
-  private constructor(
-    readonly project: LoadedProject,
-    diagnostic: Diagnostic,
-  ) {
+  private constructor(readonly project: LoadedProject, diagnostic: Diagnostic,) {
     for (const [id, definition] of Object.entries(project.manifest.workers)) {
       this.workers.set(id, new NodeWorker(id, definition, project, diagnostic));
     }

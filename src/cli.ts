@@ -6,6 +6,7 @@ import { createMcpServer } from './server.js';
 
 async function main(): Promise<void> {
   const [command, filename, ...extra] = process.argv.slice(2);
+
   if (!filename || extra.length || !['validate', 'serve'].includes(command)) {
     throw new Error('Usage: mcpack <validate|serve> <path/to/mcpack.json>');
   }

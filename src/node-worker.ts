@@ -5,8 +5,6 @@ import type { LoadedProject, WorkerDefinition } from './manifest.js';
 import { MCPackError } from './errors.js';
 import { childMessage } from './wire.js';
 
-export type Diagnostic = (workerId: string, stream: 'stdout' | 'stderr', text: string) => void;
-
 interface Pending {
   id: string;
   kind: Operation;
@@ -16,6 +14,8 @@ interface Pending {
   reject(error: MCPackError): void;
   cleanup(): void;
 }
+
+export type Diagnostic = (workerId: string, stream: 'stdout' | 'stderr', text: string) => void;
 
 /** One persistent process, one active request, and a bounded FIFO queue. */
 export class NodeWorker {
@@ -37,7 +37,8 @@ export class NodeWorker {
   ) {}
 
   async start(): Promise<void> {
-    if (this.state !== 'new') throw new MCPackError('WORKER_UNAVAILABLE', 'Worker already started');
+    if (this.state !== 'new')
+      throw new MCPackError('WORKER_UNAVAILABLE', 'Worker already started');
 
     this.state = 'starting';
     const env: NodeJS.ProcessEnv = {};
@@ -53,7 +54,9 @@ export class NodeWorker {
       ...this.definition.inheritEnv,
     ];
 
-    for (const key of inherited) if (process.env[key] !== undefined) env[key] = process.env[key];
+    for (const key of inherited)
+      if (process.env[key] !== undefined)
+        env[key] = process.env[key];
 
     Object.assign(env, this.definition.env);
 
