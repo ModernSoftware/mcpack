@@ -37,8 +37,7 @@ export class NodeWorker {
   ) {}
 
   async start(): Promise<void> {
-    if (this.state !== 'new')
-      throw new MCPackError('WORKER_UNAVAILABLE', 'Worker already started');
+    if (this.state !== 'new') throw new MCPackError('WORKER_UNAVAILABLE', 'Worker already started');
 
     this.state = 'starting';
     const env: NodeJS.ProcessEnv = {};
@@ -54,9 +53,7 @@ export class NodeWorker {
       ...this.definition.inheritEnv,
     ];
 
-    for (const key of inherited)
-      if (process.env[key] !== undefined)
-        env[key] = process.env[key];
+    for (const key of inherited) if (process.env[key] !== undefined) env[key] = process.env[key];
 
     Object.assign(env, this.definition.env);
 
