@@ -110,16 +110,14 @@ export async function loadProject(filename: string): Promise<LoadedProject> {
 
     const uris = manifest.resources.map((resource) => resource.uri);
 
-    if (new Set(uris).size !== uris.length)
-      throw new Error('Duplicate resource URI');
+    if (new Set(uris).size !== uris.length) throw new Error('Duplicate resource URI');
 
     for (const prompt of manifest.prompts) {
       if (new Set(prompt.arguments.map((arg) => arg.name)).size !== prompt.arguments.length)
         throw new Error(`Duplicate prompt argument: ${prompt.name}`);
     }
 
-    for (const tool of manifest.tools)
-      validator.compile(tool.inputSchema);
+    for (const tool of manifest.tools) validator.compile(tool.inputSchema);
 
     for (const worker of Object.values(manifest.workers)) {
       if (isAbsolute(worker.module))
@@ -128,7 +126,11 @@ export async function loadProject(filename: string): Promise<LoadedProject> {
       const module = await realpath(resolve(root, worker.module));
       const rel = relative(root, module);
 
-      if (rel === '..' || rel.startsWith(`..${process.platform === 'win32' ? '\\' : '/'}`) || isAbsolute(rel)) {
+      if (
+        rel === '..' ||
+        rel.startsWith(`..${process.platform === 'win32' ? '\\' : '/'}`) ||
+        isAbsolute(rel)
+      ) {
         throw new Error('Worker module resolves outside the project');
       }
 
@@ -137,10 +139,12 @@ export async function loadProject(filename: string): Promise<LoadedProject> {
 
     return { manifest, root };
   } catch (error) {
-    throw new MCPackError('INVALID_MANIFEST', error instanceof Error ? error.message : String(error));
+    throw new MCPackError(
+      'INVALID_MANIFEST',
+      error instanceof Error ? error.message : String(error),
+    );
   }
 }
-
 
 export type Manifest = z.infer<typeof ManifestSchema>;
 export type WorkerDefinition = Manifest['workers'][string];
@@ -153,5 +157,5 @@ export interface LoadedProject {
 export const validator = new Ajv2020({
   strict: true,
   allErrors: true,
-  validateFormats: false
+  validateFormats: false,
 });
