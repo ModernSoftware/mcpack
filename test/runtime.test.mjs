@@ -2,7 +2,7 @@ import nodeTest from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { mkdtemp, copyFile, writeFile, readFile, rm, access } from 'node:fs/promises';
+import { mkdtemp, copyFile, writeFile, readFile, rm, access, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { MCPackRuntime, loadProject } from '../dist/index.js';
@@ -280,8 +280,10 @@ for (const runtimeKind of ['node', 'python']) {
         const runtime = await loadRuntime();
         await runtime.start();
         assert.equal(
-          (await runtime.callTool('primary', { action: 'interpreter' })).structuredContent.prefix,
-          environment,
+          await realpath(
+            (await runtime.callTool('primary', { action: 'interpreter' })).structuredContent.prefix,
+          ),
+          await realpath(environment),
         );
       },
     );
