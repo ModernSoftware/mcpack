@@ -1,0 +1,45 @@
+name: Forge native integration
+on:
+  push:
+    branches: [main, ci/forge-v0.10.0]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    name: Native integration (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - name: Checkout MCPack
+        uses: actions/checkout@v4
+        with:
+          path: mcpack
+      - name: Checkout tested Forge revision
+        uses: actions/checkout@v4
+        with:
+          repository: ModernSoftware/modern-mcp-forge
+          ref: a351a96d2874f2e3ac9e97931fe527b8ec7d157e
+          path: forge
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: forge/package.json
+      - name: Install Forge dependencies
+        working-directory: forge
+        run: bun install --frozen-lockfile
+      - name: Build and install the private MCPack package locally
+        working-directory: forge
+        run: bun run mcpack:setup -- ../mcpack
+      - name: Verify native workflow and standalone parity
+        working-directory: forge
+        run: bun run test:mcpack
