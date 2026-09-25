@@ -10,7 +10,7 @@ This keeps the deployable native project independent of the Forge UI and avoids 
 
 The host validates the manifest, owns MCP discovery, and schedules execution. Workers own native application dependencies and lifecycle. Child processes were chosen over worker threads to establish an isolation and lifecycle boundary reusable for other languages, and to keep handler stdout away from protocol traffic. They are not a security sandbox.
 
-Node IPC is the first private adapter transport. Using MCP between a host and every native function process would add unnecessary discovery and protocol responsibilities to the handler contract. Python will need a framed transport adapter later, while preserving the public factory/handler semantics where applicable.
+Node IPC is the first private adapter transport. Using MCP between a host and every native function process would add unnecessary discovery and protocol responsibilities to the handler contract. Python uses JSON-lines over private subprocess pipes; its runner redirects application stdout to stderr. A shared ProcessWorker scheduler owns both adapters’ queues, cancellation, deadlines, and termination. Python handlers implement the native factory contract without an MCP SDK.
 
 One active invocation per worker is deliberate. Shared state has predictable sequential access. Multiple named workers provide concurrency and fault isolation; they are not replicas or a load-balanced pool. Replication requires an explicit policy for state, routing and startup costs, so it is deferred.
 
@@ -20,9 +20,9 @@ A failed process or timeout does not prove an external side effect failed. The a
 
 ## 4. One core for Forge and standalone serving
 
-Forge will call MCPackRuntime directly for native projects; the CLI wraps the same runtime with an SDK server. The manifest, validation and result behavior therefore remain the same. SDK server construction is separate from runtime ownership so a host can control shutdown and eventual HTTP lifecycle.
+Forge’s `v0.10.0` prototype calls MCPackRuntime directly for native projects; the CLI wraps the same runtime with an SDK server. The manifest, validation and result behavior therefore remain the same. SDK server construction is separate from runtime ownership so a host can control shutdown and eventual HTTP lifecycle.
 
-Forge's inspected execution protocol currently starts one process per execution and reads a single JSON response. It cannot consume this persistent-worker contract unchanged. Migration must explicitly replace its native execution path; bridges and remote sources stay behind Forge's own source interface.
+Forge’s legacy custom execution protocol starts one process per execution and reads a single JSON response. It cannot consume this persistent-worker contract unchanged. Migration must explicitly replace its native execution path; bridges and remote sources stay behind Forge's own source interface.
 
 ## 5. Explicit protocol dependency
 

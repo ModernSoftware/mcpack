@@ -13,20 +13,37 @@ const binding = {
   handler: name,
 };
 
-const WorkerSchema = z
-  .object({
-    runtime: z.literal('node'),
-    module: z.string().min(1),
-    export: z.string().min(1).default('createWorker'),
-    config: object.default({}),
-    env: z.record(z.string(), z.string()).default({}),
-    inheritEnv: z.array(z.string()).default([]),
-    startupTimeoutMs: z.number().int().min(1).max(300_000).default(10_000),
-    timeoutMs: z.number().int().min(1).max(300_000).default(30_000),
-    shutdownTimeoutMs: z.number().int().min(1).max(30_000).default(3_000),
-    maxQueue: z.number().int().min(0).max(1000).default(32),
-  })
-  .strict();
+const workerFields = {
+  module: z.string().min(1),
+  config: object.default({}),
+  env: z.record(z.string(), z.string()).default({}),
+  inheritEnv: z.array(z.string()).default([]),
+  startupTimeoutMs: z.number().int().min(1).max(300_000).default(10_000),
+  timeoutMs: z.number().int().min(1).max(300_000).default(30_000),
+  shutdownTimeoutMs: z.number().int().min(1).max(30_000).default(3_000),
+  maxQueue: z.number().int().min(0).max(1000).default(32),
+};
+
+const WorkerSchema = z.discriminatedUnion('runtime', [
+  z
+    .object({
+      ...workerFields,
+      runtime: z.literal('node'),
+      export: z.string().min(1).default('createWorker'),
+    })
+    .strict(),
+  z
+    .object({
+      ...workerFields,
+      runtime: z.literal('python'),
+      export: z.string().min(1).default('create_worker'),
+      executable: z
+        .string()
+        .min(1)
+        .default(process.platform === 'win32' ? 'python' : 'python3'),
+    })
+    .strict(),
+]);
 
 export const ManifestSchema = z
   .object({
@@ -135,6 +152,9 @@ export async function loadProject(filename: string): Promise<LoadedProject> {
       }
 
       worker.module = module;
+      if (worker.runtime === 'python' && /[\\/]/.test(worker.executable)) {
+        worker.executable = resolve(root, worker.executable);
+      }
     }
 
     return { manifest, root };

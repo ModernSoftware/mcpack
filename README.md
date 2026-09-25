@@ -2,7 +2,7 @@
 
 MCPack runs native MCP tools, resources, and prompts from a versioned project manifest. It keeps handler processes alive between calls and exposes their capabilities through the official TypeScript MCP SDK.
 
-This is the first **Node-only alpha**. It is a foundation for Modern MCP Forge's native runtime, not yet a production release. Forge integration is a subsequent change.
+This alpha supports **Node and Python native workers**. Modern MCP Forge’s `v0.10.0` branch contains the first native integration; it is not yet a production release.
 
 ## Run the example
 
@@ -32,7 +32,7 @@ The example provides `greet`, `mcpack://hello/guide`, and `welcome`. Repeated gr
 
 ## Author a native project
 
-Keep a `mcpack.json` file alongside your handler code. A worker declares a JavaScript module and an exported factory. Tools, resources, and prompts bind to named handlers returned by that factory.
+Keep a `mcpack.json` file alongside your handler code. A worker declares a runtime, source module, and factory. Tools, resources, and prompts bind to named handlers returned by that factory.
 
 ```json
 {
@@ -85,6 +85,52 @@ export async function createWorker(context) {
 
 TypeScript projects compile handlers before execution and point `module` at the resulting JavaScript inside the project directory. There is no implicit TypeScript loader or build step. The exported `CreateWorker`, `NativeWorker`, `Handler`, and result types describe the authoring contract.
 
+## Add Python to the same server
+
+Python workers require Python 3.11 or newer; Node-only projects do not require Python.
+The included runner uses only the Python standard library. Install your application’s
+Python dependencies in its own environment, then select that environment’s interpreter:
+
+```json
+{
+  "runtime": "python",
+  "module": "./python_handlers.py",
+  "executable": "./.venv/bin/python"
+}
+```
+
+On Windows use `./.venv/Scripts/python.exe`. Paths are relative to the manifest;
+absolute interpreter paths are also supported. Without `executable`, MCPack searches
+PATH for `python3` on Unix or `python` on Windows. This is an executable path, not a shell
+command; do not include arguments or quotes in its value.
+
+```python
+# python_handlers.py
+def create_worker(context):
+    def greet(args, call):
+        call.signal.throw_if_aborted()
+        return {"content": [{"type": "text", "text": f"Hello, {args['name']}!"}]}
+
+    return {"tools": {"greet": greet}}
+```
+
+Factories, handlers, and cleanup hooks may be synchronous or async. The Python factory
+returns a dictionary of handler maps with an optional `close` callable. Context uses
+`worker_id`, `project_root`, `config`, `log`, and, for calls, `request_id` and `signal`.
+See the [Python contract](docs/python.md) for lifecycle, imports, and result details.
+
+After `npm run build`, try the mixed-language project:
+
+```sh
+node dist/cli.js validate examples/mixed/mcpack.json
+node dist/cli.js serve examples/mixed/mcpack.json
+```
+
+It exposes Node’s `greet`, Python’s `summarize`, a Python resource, and a Python prompt
+through one MCP server. Each worker remains alive across calls. The same manifest can
+be loaded by Forge’s native integration after installing this MCPack revision locally.
+The standalone CLI still uses stdio; Forge owns its Streamable HTTP endpoint.
+
 ## Embed the same runtime
 
 Once the package is installed from a local tarball or workspace:
@@ -106,7 +152,7 @@ try {
 }
 ```
 
-Forge will consume this API for **native** projects. External MCP servers and language bridges remain Forge features; MCPack does not proxy or package them.
+Forge consumes this API in its native integration prototype for **native** projects. External MCP servers and language bridges remain Forge features; MCPack does not proxy or package them.
 
 ## Operating model
 
@@ -119,9 +165,9 @@ Forge will consume this API for **native** projects. External MCP servers and la
 
 ## Scope and next steps
 
-Implemented: manifest validation, Node factories, persistent named workers, bounded queues, cancellation/deadlines, graceful shutdown, text tool/resource/prompt results, static discovery, stdio serving, and an embedding API.
+Implemented: manifest validation, Node/Python factories, persistent named workers, bounded queues, cancellation/deadlines, graceful shutdown, text tool/resource/prompt results, static discovery, stdio serving, and an embedding API.
 
-Not implemented: HTTP serving/authentication, Python/.NET workers, replicated worker pools, automatic recovery, hot reload, resource templates/subscriptions, binary or rich media results, output schemas, tasks, sampling, and elicitation. No latency or production-readiness claim is made yet.
+Not implemented: HTTP serving/authentication in the standalone CLI, .NET workers, replicated worker pools, automatic recovery, hot reload, resource templates/subscriptions, binary or rich media results, output schemas, tasks, sampling, and elicitation. No latency or production-readiness claim is made yet.
 
 Handler code is **trusted executable code**. A child process and a project-relative entrypoint are not a sandbox. Modules can import other files, access the network and filesystem, spawn children, and cause side effects. Use deployment isolation for untrusted code. Killing a worker does not manage arbitrary descendants it spawned.
 

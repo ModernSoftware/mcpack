@@ -1,4 +1,5 @@
-import { fork, type ChildProcess } from 'node:child_process';
+import type { ChildProcess } from 'node:child_process';
+import { launchWorker, type WorkerProcess } from './worker-process.js';
 import { randomUUID } from 'node:crypto';
 import type { JsonObject, Operation } from './contracts.js';
 import type { LoadedProject, WorkerDefinition } from './manifest.js';
@@ -18,8 +19,9 @@ interface Pending {
 export type Diagnostic = (workerId: string, stream: 'stdout' | 'stderr', text: string) => void;
 
 /** One persistent process, one active request, and a bounded FIFO queue. */
-export class NodeWorker {
+export class ProcessWorker {
   private child?: ChildProcess;
+  private transport?: WorkerProcess;
   private state: 'new' | 'starting' | 'ready' | 'failed' | 'closed' = 'new';
   private queue: Pending[] = [];
   private active?: Pending;
@@ -57,40 +59,33 @@ export class NodeWorker {
 
     Object.assign(env, this.definition.env);
 
-    const child = (this.child = fork(new URL('./worker-entry.js', import.meta.url), [], {
-      cwd: this.project.root,
+    const transport = launchWorker(
+      this.definition,
+      this.project.root,
       env,
-      execArgv: [],
-      stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
-      serialization: 'json',
-    }));
+      (raw) => this.receive(raw),
+      (error) => this.fail(error),
+      (stream, text) => {
+        try {
+          this.diagnostic(this.id, stream, text.slice(0, 8192));
+        } catch {}
+      },
+    );
+    this.transport = transport;
+    const child = (this.child = transport.child);
 
-    this.exited = new Promise((resolve) =>
-      child.once('exit', () => {
+    this.exited = new Promise((resolve) => {
+      const exited = () => {
         clearTimeout(this.killTimer);
         this.fail(new MCPackError('WORKER_EXITED', `Worker ${this.id} exited`));
         resolve();
-      }),
-    );
-
-    for (const stream of ['stdout', 'stderr'] as const) {
-      child[stream]?.on('data', (data: Buffer) => {
-        // Diagnostics are best effort and never become protocol output.
-        try {
-          this.diagnostic(this.id, stream, data.toString('utf8').slice(0, 8192));
-        } catch {}
+      };
+      child.once('exit', exited);
+      // Failed spawn emits error without exit. Do not wait for stdio 'close':
+      // application-created descendants may retain the pipe descriptors.
+      child.once('error', () => {
+        if (!child.pid) exited();
       });
-    }
-
-    child.on('error', () =>
-      this.fail(new MCPackError('WORKER_UNAVAILABLE', `Cannot launch worker ${this.id}`)),
-    );
-
-    child.on('message', (raw) => this.receive(raw));
-
-    child.on('disconnect', () => {
-      if (this.state !== 'closed')
-        this.fail(new MCPackError('WORKER_EXITED', `Worker ${this.id} disconnected`));
     });
 
     const started = new Promise<void>((resolve, reject) => {
@@ -212,10 +207,11 @@ export class NodeWorker {
 
   private cancel(id: string, error: MCPackError): void {
     if (this.active?.id === id) {
-      this.send({ type: 'cancel', id });
-      this.active.cleanup();
-      this.active.reject(error);
+      const active = this.active;
       this.active = undefined;
+      active.cleanup();
+      active.reject(error);
+      this.send({ type: 'cancel', id });
 
       // Never reuse a worker whose timed-out handler could still mutate state.
       this.fail(
@@ -233,14 +229,10 @@ export class NodeWorker {
   }
 
   private send(message: object): void {
-    if (!this.child?.connected)
-      return this.fail(new MCPackError('WORKER_EXITED', 'Worker disconnected'));
     try {
-      this.child.send({ v: 1, ...message }, (error) => {
-        if (error) this.fail(new MCPackError('WORKER_PROTOCOL_ERROR', 'Worker IPC send failed'));
-      });
+      this.transport?.send({ v: 1, ...message });
     } catch {
-      this.fail(new MCPackError('WORKER_PROTOCOL_ERROR', 'Worker IPC serialization failed'));
+      this.fail(new MCPackError('WORKER_PROTOCOL_ERROR', 'Worker message could not be sent'));
     }
   }
 
