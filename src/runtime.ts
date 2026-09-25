@@ -56,6 +56,19 @@ export class MCPackRuntime {
     ).then(() => {}));
   }
 
+  health() {
+    const workers = Object.fromEntries(
+      [...this.workers].map(([id, worker]) => [id, worker.snapshot()]),
+    );
+    return {
+      state: this.state,
+      ready:
+        this.state === 'ready' &&
+        Object.values(workers).every((worker) => worker.state === 'ready'),
+      workers,
+    };
+  }
+
   private worker(id: string): ProcessWorker {
     if (this.state !== 'ready')
       throw new MCPackError(

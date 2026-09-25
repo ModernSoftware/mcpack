@@ -1,0 +1,529 @@
+{
+  "measuredAt": "2026-09-25T18:54:07.411Z",
+  "sourceSha256": "3aa603a94b19d9cf4daa5d2e612de0583d9abb576b833775601edf6f24b96419",
+  "sourceFiles": [
+    "benchmark/handlers.mjs",
+    "benchmark/handlers.py",
+    "benchmark/run.mjs",
+    "package-lock.json",
+    "runtimes/python/worker.py",
+    "src/cli.ts",
+    "src/contracts.ts",
+    "src/errors.ts",
+    "src/http.ts",
+    "src/index.ts",
+    "src/manifest.ts",
+    "src/process-worker.ts",
+    "src/runtime.ts",
+    "src/server.ts",
+    "src/wire.ts",
+    "src/worker-entry.ts",
+    "src/worker-process.ts"
+  ],
+  "environment": {
+    "os": "linux",
+    "release": "6.18.44",
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "logicalCpus": 9,
+    "node": "v24.19.0",
+    "python": "Python 3.12.14"
+  },
+  "iterationsPerCase": 100,
+  "notes": [
+    "Synthetic baseline, not a production capacity claim. Compare runs on the same machine.",
+    "Warm latency includes host validation and queue time; HTTP also includes SDK/client/network work.",
+    "Each language has one worker. Concurrency is callers, not replicas.",
+    "RSS below covers the Node benchmark host only; it excludes worker and total deployment memory."
+  ],
+  "coldStartMs": {
+    "runtime": 126.76730700000002,
+    "http": 129.4413800000002
+  },
+  "results": [
+    {
+      "transport": "runtime",
+      "language": "node",
+      "workload": "noop",
+      "concurrency": 1,
+      "calls": 100,
+      "elapsedMs": 24.705452000000037,
+      "throughputPerSecond": 4047.6895545161387,
+      "latencyMs": {
+        "p50": 0.21499299999999266,
+        "p95": 0.338688999999988,
+        "p99": 1.0460339999999633,
+        "max": 1.4049529999999777
+      }
+    },
+    {
+      "transport": "runtime",
+      "language": "node",
+      "workload": "noop",
+      "concurrency": 8,
+      "calls": 100,
+      "elapsedMs": 18.13853800000004,
+      "throughputPerSecond": 5513.123494297048,
+      "latencyMs": {
+        "p50": 1.3843430000000012,
+        "p95": 1.727149000000054,
+        "p99": 1.8215399999999704,
+        "max": 1.8224220000000173
+      }
+    },
+    {
+      "transport": "runtime",
+      "language": "node",
+      "workload": "payload-16KiB",
+      "concurrency": 1,
+      "calls": 100,
+      "elapsedMs": 32.34797600000002,
+      "throughputPerSecond": 3091.3835227279737,
+      "latencyMs": {
+        "p50": 0.29166900000001306,
+        "p95": 0.4653099999999881,
+        "p99": 1.1247220000000198,
+        "max": 1.3732860000000073
+      }
+    },
+    {
+      "transport": "runtime",
+      "language": "node",
+      "workload": "payload-16KiB",
+      "concurrency": 8,
+      "calls": 100,
+      "elapsedMs": 21.230700000000013,
+      "throughputPerSecond": 4710.160286754555,
+      "latencyMs": {
+        "p50": 1.5233820000000264,
+        "p95": 2.4682640000000333,
+        "p99": 2.479078999999956,
+        "max": 2.511167999999998
+      }
+    },
+    {
+      "transport": "runtime",
+      "language": "node",
+      "workload": "io-5ms",
+      "concurrency": 1,
+      "calls": 100,
+      "elapsedMs": 541.1433810000001,
+      "throughputPerSecond": 184.79390769818912,
+      "latencyMs": {
+        "p50": 5.379083000000037,
+        "p95": 5.725783999999976,
+        "p99": 5.781618999999978,
+        "max": 5.879480999999942
+      }
+    },
+    {
+      "transport": "runtime",
+      "language": "node",
+      "workload": "io-5ms",
+      "concurrency": 8,
+      "calls": 100,
+      "elapsedMs": 536.9212929999999,
+      "throughputPerSecond": 186.24703714255568,
+      "latencyMs": {
+        "p50": 42.883174000000054,
+        "p95": 43.33534500000019,
+        "p99": 43.404830000000175,
+        "max": 43.50486999999998
+      }
+    },
+    {
+      "transport": "runtime",
+      "language": "node",
+      "workload": "cpu-50000",
+      "concurrency": 1,
+      "calls": 100,
+      "elapsedMs": 25.741735999999946,
+      "throughputPerSecond": 3884.74188376418,
+      "latencyMs": {
+        "p50": 0.24233400000002803,
+        "p95": 0.36759299999994255,
+        "p99": 0.5030070000000251,
+        "max": 0.5089560000001256
+      }
+    },
+    {
+      "transport": "runtime",
+      "language": "node",
+      "workload": "cpu-50000",
+      "concurrency": 8,
+      "calls": 100,
+      "elapsedMs": 27.227190999999948,
+      "throughputPerSecond": 3672.7990044951825,
+      "latencyMs": {
+        "p50": 1.7655059999999594,
+        "p95": 3.59078199999999,
+        "p99": 3.7370519999999487,
+        "max": 3.773838000000069
+      }
+    },
+    {
+      "transport": "runtime",
+      "language": "python",
+      "workload": "noop",
+      "concurrency": 1,
+      "calls": 100,
+      "elapsedMs": 17.17117300000018,
+      "throughputPerSecond": 5823.713965260204,
+      "latencyMs": {
+        "p50": 0.13372099999992315,
+        "p95": 0.31660599999986516,
+        "p99": 0.747094000000061,
+        "max": 1.003150000000005
+      }
+    },
+    {
+      "transport": "runtime",
+      "language": "python",
+      "workload": "noop",
+      "concurrency": 8,
+      "calls": 100,
+      "elapsedMs": 13.696866,
+      "throughputPerSecond": 7300.940229684659,
+      "latencyMs": {
+        "p50": 1.0499099999999544,
+        "p95": 1.282479000000194,
+        "p99": 1.3355289999999513,
+        "max": 1.341278000000102
+      }
+    },
+    {
+      "transport": "runtime",
+      "language": "python",
+      "workload": "payload-16KiB",
+      "concurrency": 1,
+      "calls": 100,
+      "elapsedMs": 36.423225,
+      "throughputPerSecond": 2745.5009818597887,
+      "latencyMs": {
+        "p50": 0.2809519999998429,
+        "p95": 0.6679850000000442,
+        "p99": 1.102137999999968,
+        "max": 1.4470969999999852
+      }
+    },
+    {
+      "transport": "runtime",
+      "language": "python",
+      "workload": "payload-16KiB",
+      "concurrency": 8,
+      "calls": 100,
+      "elapsedMs": 38.475537999999915,
+      "throughputPerSecond": 2599.053975541556,
+      "latencyMs": {
+        "p50": 3.14429999999993,
+        "p95": 3.857834000000139,
+        "p99": 3.9197959999999057,
+        "max": 3.9508939999998347
+      }
+    },
+    {
+      "transport": "runtime",
+      "language": "python",
+      "workload": "io-5ms",
+      "concurrency": 1,
+      "calls": 100,
+      "elapsedMs": 550.8888400000003,
+      "throughputPerSecond": 181.52482449998433,
+      "latencyMs": {
+        "p50": 5.455376999999771,
+        "p95": 5.895578999999998,
+        "p99": 6.152275999999802,
+        "max": 6.553400000000238
+      }
+    },
+    {
+      "transport": "runtime",
+      "language": "python",
+      "workload": "io-5ms",
+      "concurrency": 8,
+      "calls": 100,
+      "elapsedMs": 542.646972,
+      "throughputPerSecond": 184.28187230352776,
+      "latencyMs": {
+        "p50": 43.153691999999864,
+        "p95": 44.5812890000002,
+        "p99": 44.74410900000021,
+        "max": 44.74441500000012
+      }
+    },
+    {
+      "transport": "runtime",
+      "language": "python",
+      "workload": "cpu-50000",
+      "concurrency": 1,
+      "calls": 100,
+      "elapsedMs": 256.791283,
+      "throughputPerSecond": 389.42131847988,
+      "latencyMs": {
+        "p50": 2.5117489999997815,
+        "p95": 2.8651810000001205,
+        "p99": 3.2831090000004224,
+        "max": 4.127028999999766
+      }
+    },
+    {
+      "transport": "runtime",
+      "language": "python",
+      "workload": "cpu-50000",
+      "concurrency": 8,
+      "calls": 100,
+      "elapsedMs": 254.28524400000015,
+      "throughputPerSecond": 393.2591542747952,
+      "latencyMs": {
+        "p50": 20.262073000000328,
+        "p95": 21.32640399999991,
+        "p99": 21.460857000000033,
+        "max": 21.770632000000205
+      }
+    },
+    {
+      "transport": "http",
+      "language": "node",
+      "workload": "noop",
+      "concurrency": 1,
+      "calls": 100,
+      "elapsedMs": 279.62447999999995,
+      "throughputPerSecond": 357.62247997743265,
+      "latencyMs": {
+        "p50": 2.656546000000162,
+        "p95": 3.7465659999998024,
+        "p99": 4.323664999999892,
+        "max": 6.771867999999813
+      }
+    },
+    {
+      "transport": "http",
+      "language": "node",
+      "workload": "noop",
+      "concurrency": 8,
+      "calls": 100,
+      "elapsedMs": 126.84802300000001,
+      "throughputPerSecond": 788.3449630113666,
+      "latencyMs": {
+        "p50": 9.470416999999998,
+        "p95": 11.987773999999717,
+        "p99": 19.002558000000136,
+        "max": 23.35277199999973
+      }
+    },
+    {
+      "transport": "http",
+      "language": "node",
+      "workload": "payload-16KiB",
+      "concurrency": 1,
+      "calls": 100,
+      "elapsedMs": 298.75190299999986,
+      "throughputPerSecond": 334.72590131082796,
+      "latencyMs": {
+        "p50": 2.897599000000355,
+        "p95": 4.0222909999993135,
+        "p99": 5.264850000000479,
+        "max": 6.0430319999995845
+      }
+    },
+    {
+      "transport": "http",
+      "language": "node",
+      "workload": "payload-16KiB",
+      "concurrency": 8,
+      "calls": 100,
+      "elapsedMs": 152.29712500000005,
+      "throughputPerSecond": 656.611213113839,
+      "latencyMs": {
+        "p50": 11.107670000000326,
+        "p95": 19.342147999999725,
+        "p99": 21.375246999999945,
+        "max": 24.17659100000037
+      }
+    },
+    {
+      "transport": "http",
+      "language": "node",
+      "workload": "io-5ms",
+      "concurrency": 1,
+      "calls": 100,
+      "elapsedMs": 799.4219910000002,
+      "throughputPerSecond": 125.09037920624326,
+      "latencyMs": {
+        "p50": 7.874696999999287,
+        "p95": 9.123125000000073,
+        "p99": 10.290009999999711,
+        "max": 11.56448199999977
+      }
+    },
+    {
+      "transport": "http",
+      "language": "node",
+      "workload": "io-5ms",
+      "concurrency": 8,
+      "calls": 100,
+      "elapsedMs": 533.7685109999993,
+      "throughputPerSecond": 187.3471325849721,
+      "latencyMs": {
+        "p50": 42.129479000000174,
+        "p95": 43.68051899999955,
+        "p99": 43.90477099999953,
+        "max": 47.675067000000126
+      }
+    },
+    {
+      "transport": "http",
+      "language": "node",
+      "workload": "cpu-50000",
+      "concurrency": 1,
+      "calls": 100,
+      "elapsedMs": 245.24850200000037,
+      "throughputPerSecond": 407.74968729472545,
+      "latencyMs": {
+        "p50": 2.3791700000001583,
+        "p95": 2.731880000000274,
+        "p99": 3.142527999999402,
+        "max": 7.965632999999798
+      }
+    },
+    {
+      "transport": "http",
+      "language": "node",
+      "workload": "cpu-50000",
+      "concurrency": 8,
+      "calls": 100,
+      "elapsedMs": 85.92694399999982,
+      "throughputPerSecond": 1163.7793146699155,
+      "latencyMs": {
+        "p50": 6.84888299999966,
+        "p95": 8.063956999999391,
+        "p99": 9.129744999999275,
+        "max": 9.868034999999509
+      }
+    },
+    {
+      "transport": "http",
+      "language": "python",
+      "workload": "noop",
+      "concurrency": 1,
+      "calls": 100,
+      "elapsedMs": 230.37179100000048,
+      "throughputPerSecond": 434.0809244305428,
+      "latencyMs": {
+        "p50": 2.1931589999994685,
+        "p95": 2.6275830000004134,
+        "p99": 3.0967179999997825,
+        "max": 6.822272999999768
+      }
+    },
+    {
+      "transport": "http",
+      "language": "python",
+      "workload": "noop",
+      "concurrency": 8,
+      "calls": 100,
+      "elapsedMs": 97.10634699999991,
+      "throughputPerSecond": 1029.798803985491,
+      "latencyMs": {
+        "p50": 7.5648709999995845,
+        "p95": 8.856603999999606,
+        "p99": 11.205767999999807,
+        "max": 12.131631000000198
+      }
+    },
+    {
+      "transport": "http",
+      "language": "python",
+      "workload": "payload-16KiB",
+      "concurrency": 1,
+      "calls": 100,
+      "elapsedMs": 263.8613430000005,
+      "throughputPerSecond": 378.98692875219626,
+      "latencyMs": {
+        "p50": 2.542253999999957,
+        "p95": 3.0621970000001966,
+        "p99": 3.5019380000003366,
+        "max": 8.026425000000017
+      }
+    },
+    {
+      "transport": "http",
+      "language": "python",
+      "workload": "payload-16KiB",
+      "concurrency": 8,
+      "calls": 100,
+      "elapsedMs": 115.99265000000014,
+      "throughputPerSecond": 862.1235914516988,
+      "latencyMs": {
+        "p50": 8.886980000000221,
+        "p95": 12.694298000000344,
+        "p99": 14.889009000000442,
+        "max": 14.902329999999893
+      }
+    },
+    {
+      "transport": "http",
+      "language": "python",
+      "workload": "io-5ms",
+      "concurrency": 1,
+      "calls": 100,
+      "elapsedMs": 760.0091979999997,
+      "throughputPerSecond": 131.57735493617017,
+      "latencyMs": {
+        "p50": 7.549283000000287,
+        "p95": 8.085708999999952,
+        "p99": 8.28385200000048,
+        "max": 10.607637999999497
+      }
+    },
+    {
+      "transport": "http",
+      "language": "python",
+      "workload": "io-5ms",
+      "concurrency": 8,
+      "calls": 100,
+      "elapsedMs": 550.8278299999993,
+      "throughputPerSecond": 181.54493029155796,
+      "latencyMs": {
+        "p50": 43.747182999999495,
+        "p95": 44.82089900000028,
+        "p99": 45.52871300000061,
+        "max": 46.77790300000015
+      }
+    },
+    {
+      "transport": "http",
+      "language": "python",
+      "workload": "cpu-50000",
+      "concurrency": 1,
+      "calls": 100,
+      "elapsedMs": 468.07576700000027,
+      "throughputPerSecond": 213.64062626211526,
+      "latencyMs": {
+        "p50": 4.480050000000119,
+        "p95": 5.571160999999847,
+        "p99": 9.435153999998874,
+        "max": 10.23790199999894
+      }
+    },
+    {
+      "transport": "http",
+      "language": "python",
+      "workload": "cpu-50000",
+      "concurrency": 8,
+      "calls": 100,
+      "elapsedMs": 276.1099489999997,
+      "throughputPerSecond": 362.17456256891387,
+      "latencyMs": {
+        "p50": 22.176541999999245,
+        "p95": 25.721475999998802,
+        "p99": 26.312745000001087,
+        "max": 26.946658999999272
+      }
+    }
+  ],
+  "saturation": {
+    "success": 3,
+    "QUEUE_FULL": 9
+  },
+  "hostRssBytes": 313917440
+}

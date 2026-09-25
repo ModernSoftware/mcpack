@@ -15,7 +15,12 @@ async function invoke<T>(operation: () => Promise<T>): Promise<T> {
 }
 
 /** Transport-neutral SDK server. The caller owns runtime startup and shutdown. */
-export function createMcpServer(runtime: MCPackRuntime): Server {
+export function createMcpServer(
+  runtime: MCPackRuntime,
+  options: { signal?: AbortSignal } = {},
+): Server {
+  const callSignal = (signal: AbortSignal) =>
+    options.signal ? AbortSignal.any([signal, options.signal]) : signal;
   const manifest = runtime.project.manifest;
   const server = new Server(
     { name: manifest.name, version: manifest.version },
@@ -56,14 +61,14 @@ export function createMcpServer(runtime: MCPackRuntime): Server {
       ...(await runtime.callTool(
         request.params.name,
         (request.params.arguments ?? {}) as JsonObject,
-        context.mcpReq.signal,
+        callSignal(context.mcpReq.signal),
       )),
     })),
   );
 
   server.setRequestHandler('resources/read', (request, context) =>
     invoke(async () => ({
-      ...(await runtime.readResource(request.params.uri, context.mcpReq.signal)),
+      ...(await runtime.readResource(request.params.uri, callSignal(context.mcpReq.signal))),
     })),
   );
 
@@ -72,7 +77,7 @@ export function createMcpServer(runtime: MCPackRuntime): Server {
       ...(await runtime.getPrompt(
         request.params.name,
         request.params.arguments,
-        context.mcpReq.signal,
+        callSignal(context.mcpReq.signal),
       )),
     })),
   );

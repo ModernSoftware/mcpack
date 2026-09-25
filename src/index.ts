@@ -19,3 +19,6 @@ export type { Manifest, LoadedProject, WorkerDefinition } from './manifest.js';
 export type { Diagnostic } from './process-worker.js';
 export { MCPackRuntime } from './runtime.js';
 export { createMcpServer } from './server.js';
+
+export { serveHttp, bearerToken } from './http.js';
+export type { HttpOptions, HttpAuthorizationContext } from './http.js';

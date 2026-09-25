@@ -10,7 +10,7 @@ Acceptance: native discovery and invocation work through a real MCP client; stat
 
 Inspect current project persistence and Monaco editing flow. Add a native source adapter using MCPackRuntime. Keep modules in the developer's repository, compile TS explicitly, show worker diagnostics/state, and restart deliberately after edits. Verify Forge and standalone execution produce the same discovery and results from the same files. Migrate existing custom-native projects explicitly with a manifest conversion, rather than silently changing their ABI.
 
-## Next — Python native workers (this branch)
+## Python native workers (completed)
 
 Persistent Python 3.11+ workers use the same host scheduler and native result contracts. Cover both runtimes with lifecycle tests; verify a mixed-language server and the installed npm artifact. Keep Forge’s tested `v0.10.0` branch unchanged and run its pinned regression suite against MCPack changes.
 
@@ -20,9 +20,9 @@ After this increment: measure the mixed-runtime implementation and harden deploy
 
 Define Forge's source interface for discovery, execution, refresh, health and disposal. Add remote MCP connection configuration and authentication ownership. Implement TypeScript/Python bridges as developer-authored adapters. Preserve source definitions and schemas, track original identity, handle names and resource URI collisions, and maintain reversible routing aliases. Add capability-change handling and session reconnection. These sources remain outside MCPack manifests and deployments.
 
-## Increment 4 — Production transport and supervision
+## Current increment — HTTP and release foundation
 
-Add Streamable HTTP using the same native runtime, with explicit lifecycle/session ownership and authenticated request context. Define authentication/authorization integration, credential boundaries, payload limits, health/readiness, structured diagnostics, worker recovery and shutdown behavior. Test transport errors and identity propagation; successful stdio tests alone do not establish HTTP security equivalence.
+Add stateless Streamable HTTP using the same native runtime, service-token/custom admission authentication, request limits, health/readiness and shutdown handling. Add a reproducible benchmark and release-candidate/npm-alpha workflows. Identity propagation, OAuth, worker recovery, output/memory quotas and extended soak measurements remain follow-up work. This is an alpha release foundation, not a production-readiness claim.
 
 ## Increment 5 — Additional runtimes and deployable artifacts
 

@@ -52,7 +52,7 @@ type CreateWorker = (context: WorkerContext) => NativeWorker | Promise<NativeWor
 
 `TextContent` is `{ type: 'text', text: string }`. The host validates all outputs. Node additionally validates capability shapes inside its worker; Python validates JSON representability inside its runner. Both expose the same INVALID_RESULT behavior and keep the worker usable after invalid output. This alpha intentionally accepts a text-only MCP subset. A resource handler can only return entries for its requested static URI. Prompt arguments must be declared; required arguments must exist and all values must be strings.
 
-Request context does not currently expose HTTP headers, authenticated identity, client roots, sampling or elicitation. Handlers must not assume such information is present or that transport authorization has occurred.
+Native handler context does not expose HTTP headers, authenticated identity, client roots, sampling or elicitation. The standalone HTTP admission hook verifies access before calling the SDK but does not populate handler identity. Handlers must not assume such information is present or that transport authorization has occurred.
 
 ## Lifecycle and scheduling
 
@@ -97,3 +97,5 @@ Node uses a dedicated fork IPC channel with JSON serialization. It never multipl
 Python uses UTF-8 newline-delimited JSON over its private stdin/stdout pipes with the same message envelope. The runner redirects Python `print()` to stderr before importing handlers. Low-level writes to fd 1 are forbidden and can retire the worker as a protocol failure. This private transport is not promised to external frameworks. Workers do not implement MCP themselves. No fixed per-message byte limit or memory quota is implemented yet. The queue is bounded by count, so deployments must constrain input sizes and memory independently before exposing untrusted traffic.
 
 Python factory conventions, interpreter selection, and result restrictions are documented in [Python native workers](python.md).
+
+`MCPackRuntime.health()` returns runtime state, aggregate readiness, and each worker’s state, active flag, and queued count. The HTTP host uses it for readiness. `createMcpServer(runtime, { signal })` optionally combines a transport request signal with SDK call cancellation; existing single-argument callers remain supported.
