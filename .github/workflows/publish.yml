@@ -1,0 +1,28 @@
+name: Publish npm alpha
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm test
+      - run: npm run test:package
+      - run: npm run release:check -- --publish
+      - name: Publish alpha using npm trusted publishing
+        run: npm publish --tag alpha

@@ -260,6 +260,10 @@ export class ProcessWorker {
     this.killTimer.unref();
   }
 
+  snapshot() {
+    return { state: this.state, active: Boolean(this.active), queued: this.queue.length };
+  }
+
   close(): Promise<void> {
     if (this.closing) return this.closing;
 

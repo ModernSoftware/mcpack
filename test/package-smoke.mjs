@@ -3,6 +3,7 @@ import { promisify } from 'node:util';
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import assert from 'node:assert/strict';
 import { Client } from '@modelcontextprotocol/client';
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
@@ -14,6 +15,7 @@ const npmCli = process.env.npm_execpath;
 if (!npmCli) throw new Error('Run through npm run test:package');
 
 let client;
+let httpHost;
 
 try {
   const packed = await exec(
@@ -70,10 +72,33 @@ try {
     client = undefined;
   }
 
-  console.log(
-    'PASS: packed package installed and served Node/Python native capabilities from an isolated directory',
+  const { serveHttp, bearerToken } = await import(
+    pathToFileURL(join(installed, 'dist', 'index.js')).href
   );
+  httpHost = await serveHttp(join(installed, 'examples', 'mixed', 'mcpack.json'), {
+    port: 0,
+    authorize: bearerToken('package-test'),
+  });
+  client = new Client(
+    { name: 'package-http', version: '1' },
+    { versionNegotiation: { mode: 'auto' } },
+  );
+  const { StreamableHTTPClientTransport } = await import('@modelcontextprotocol/client');
+  await client.connect(
+    new StreamableHTTPClientTransport(new URL(httpHost.url), {
+      requestInit: { headers: { authorization: 'Bearer package-test' } },
+    }),
+  );
+  assert.equal(
+    (await client.callTool({ name: 'summarize', arguments: { values: [4, 5] } })).structuredContent
+      .total,
+    9,
+  );
+  await client.readResource({ uri: 'mcpack://mixed/guide' });
+  await client.getPrompt({ name: 'review', arguments: { summary: '9' } });
+  console.log('PASS: installed tarball serves Node/Python over stdio and authenticated HTTP');
 } finally {
   await client?.close();
+  await httpHost?.close();
   await rm(root, { recursive: true, force: true });
 }

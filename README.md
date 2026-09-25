@@ -15,7 +15,7 @@ node dist/cli.js validate examples/hello/mcpack.json
 node dist/cli.js serve examples/hello/mcpack.json
 ```
 
-`serve` waits for an MCP client on stdin/stdout; it does not start an HTTP listener. Configure a client with `node` as its command and absolute paths to `dist/cli.js` and the manifest:
+`serve` defaults to an MCP client on stdin/stdout. Add `--transport http --port 3000` for a standalone Streamable HTTP endpoint at `http://127.0.0.1:3000/mcp`. Configure a client with `node` as its command and absolute paths to `dist/cli.js` and the manifest:
 
 ```json
 {
@@ -129,7 +129,7 @@ node dist/cli.js serve examples/mixed/mcpack.json
 It exposes Node’s `greet`, Python’s `summarize`, a Python resource, and a Python prompt
 through one MCP server. Each worker remains alive across calls. The same manifest can
 be loaded by Forge’s native integration after installing this MCPack revision locally.
-The standalone CLI still uses stdio; Forge owns its Streamable HTTP endpoint.
+The standalone CLI supports stdio and HTTP. Forge continues to own its separate Streamable HTTP endpoint and connects to MCPack over stdio.
 
 ## Embed the same runtime
 
@@ -165,12 +165,14 @@ Forge’s native prototype launches the MCPack CLI over stdio, using the same ru
 
 ## Scope and next steps
 
-Implemented: manifest validation, Node/Python factories, persistent named workers, bounded queues, cancellation/deadlines, graceful shutdown, text tool/resource/prompt results, static discovery, stdio serving, and an embedding API.
+Implemented: manifest validation, Node/Python factories, persistent named workers, bounded queues, cancellation/deadlines, graceful shutdown, text tool/resource/prompt results, static discovery, stdio/Streamable HTTP serving, request admission limits, bearer authentication or a custom authorization hook, health probes, a benchmark harness, and an embedding API.
 
-Not implemented: HTTP serving/authentication in the standalone CLI, .NET workers, replicated worker pools, automatic recovery, hot reload, resource templates/subscriptions, binary or rich media results, output schemas, tasks, sampling, and elicitation. No latency or production-readiness claim is made yet.
+Not implemented: OAuth/tenant identity propagation, .NET workers, replicated worker pools, automatic recovery, hot reload, resource templates/subscriptions, binary or rich media results, output schemas, tasks, sampling, and elicitation. No latency or production-readiness claim is made yet.
 
 Handler code is **trusted executable code**. A child process and a project-relative entrypoint are not a sandbox. Modules can import other files, access the network and filesystem, spawn children, and cause side effects. Use deployment isolation for untrusted code. Killing a worker does not manage arbitrary descendants it spawned.
 
-The package is private and unlicensed pending the owner's distribution decision. `npm pack` creates a local installable package; registry publication is intentionally disabled.
+The package is private and unlicensed pending the owner’s distribution decision. Release-candidate and manually dispatched npm-alpha workflows are prepared; publishing stays disabled until those decisions are recorded. `npm pack` creates a local installable package; registry publication is intentionally disabled.
 
 See [contracts](docs/contracts.md), [architecture decisions](docs/architecture.md), and [implementation roadmap](docs/roadmap.md).
+
+See [HTTP operation and authentication](docs/http.md), [performance measurements](docs/performance.md), and [npm release preparation](docs/releasing.md).

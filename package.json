@@ -9,7 +9,10 @@
     "node": ">=22"
   },
   "exports": {
-    ".": "./dist/index.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
   "types": "./dist/index.d.ts",
   "bin": {
@@ -30,7 +33,9 @@
     "example": "node dist/cli.js serve examples/hello/mcpack.json",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test:package": "node test/package-smoke.mjs"
+    "test:package": "node test/package-smoke.mjs",
+    "benchmark": "npm run build && node benchmark/run.mjs",
+    "release:check": "node scripts/release-check.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "2.0.0",
@@ -42,5 +47,20 @@
     "@types/node": "^22.18.0",
     "prettier": "3.6.2",
     "typescript": "^5.9.2"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ModernSoftware/mcpack.git"
+  },
+  "homepage": "https://github.com/ModernSoftware/mcpack#readme",
+  "bugs": {
+    "url": "https://github.com/ModernSoftware/mcpack/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "tools",
+    "python",
+    "typescript"
+  ]
 }

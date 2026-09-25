@@ -32,4 +32,4 @@ This implementation pins the official TypeScript server and client packages to 2
 
 Persistent processes amortize process startup and application initialization. Every call still incurs serialization, IPC, scheduling and validation overhead. No performance claim follows simply from the architecture. Later measurements must separate cold start, warm latency, throughput, memory per worker and behavior under saturation, using realistic I/O and CPU workloads.
 
-The alpha has no HTTP/auth layer, per-request byte quota, memory isolation or process-tree supervisor. Those limitations must be addressed for the intended deployment environment before a production release.
+The alpha now has a standalone HTTP host with admission authentication, input byte/concurrency limits, readiness and bounded shutdown. It does not have OAuth/tenant identity propagation, worker-output quotas, memory isolation or a process-tree supervisor. Those limitations must be addressed for the intended deployment environment before a production release.
