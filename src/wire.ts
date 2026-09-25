@@ -1,4 +1,4 @@
-/** Private Node IPC protocol. Explicitly versioned; not the public MCP protocol. */
+/** Private worker protocol. Explicitly versioned; not the public MCP protocol. */
 import { z } from 'zod';
 
 const text = z.object({ type: z.literal('text'), text: z.string() }).strict();

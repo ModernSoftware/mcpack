@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "name": "mixed-native-example",
+  "version": "1.0.0",
+  "workers": {
+    "javascript": { "runtime": "node", "module": "./node-handlers.mjs" },
+    "python": { "runtime": "python", "module": "./python_handlers.py" }
+  },
+  "tools": [
+    {
+      "name": "greet",
+      "worker": "javascript",
+      "handler": "greet",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "name": { "type": "string" } },
+        "required": ["name"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "summarize",
+      "worker": "python",
+      "handler": "summarize",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "values": { "type": "array", "items": { "type": "number" }, "minItems": 1 }
+        },
+        "required": ["values"],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "resources": [
+    { "name": "guide", "uri": "mcpack://mixed/guide", "worker": "python", "handler": "guide" }
+  ],
+  "prompts": [
+    {
+      "name": "review",
+      "worker": "python",
+      "handler": "review",
+      "arguments": [{ "name": "summary", "required": true }]
+    }
+  ]
+}

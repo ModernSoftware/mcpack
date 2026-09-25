@@ -16,6 +16,6 @@ export { MCPackError } from './errors.js';
 export type { ErrorCode } from './errors.js';
 export { ManifestSchema, loadProject } from './manifest.js';
 export type { Manifest, LoadedProject, WorkerDefinition } from './manifest.js';
-export type { Diagnostic } from './node-worker.js';
+export type { Diagnostic } from './process-worker.js';
 export { MCPackRuntime } from './runtime.js';
 export { createMcpServer } from './server.js';

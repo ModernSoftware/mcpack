@@ -1,11 +1,11 @@
 import type { JsonObject, ToolResult, ResourceResult, PromptResult } from './contracts.js';
 import { loadProject, validator, type LoadedProject } from './manifest.js';
-import { NodeWorker, type Diagnostic } from './node-worker.js';
+import { ProcessWorker, type Diagnostic } from './process-worker.js';
 import { MCPackError } from './errors.js';
 import { toolResult, resourceResult, promptResult } from './wire.js';
 
 export class MCPackRuntime {
-  private workers = new Map<string, NodeWorker>();
+  private workers = new Map<string, ProcessWorker>();
   private state: 'new' | 'starting' | 'ready' | 'closed' = 'new';
   private starting?: Promise<void>;
   private closing?: Promise<void>;
@@ -15,7 +15,7 @@ export class MCPackRuntime {
     diagnostic: Diagnostic,
   ) {
     for (const [id, definition] of Object.entries(project.manifest.workers)) {
-      this.workers.set(id, new NodeWorker(id, definition, project, diagnostic));
+      this.workers.set(id, new ProcessWorker(id, definition, project, diagnostic));
     }
   }
 
@@ -56,7 +56,7 @@ export class MCPackRuntime {
     ).then(() => {}));
   }
 
-  private worker(id: string): NodeWorker {
+  private worker(id: string): ProcessWorker {
     if (this.state !== 'ready')
       throw new MCPackError(
         this.state === 'closed' ? 'RUNTIME_CLOSED' : 'WORKER_UNAVAILABLE',
