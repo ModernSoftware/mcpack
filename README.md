@@ -152,7 +152,7 @@ try {
 }
 ```
 
-Forge consumes this API in its native integration prototype for **native** projects. External MCP servers and language bridges remain Forge features; MCPack does not proxy or package them.
+Forge’s native prototype launches the MCPack CLI over stdio, using the same runtime and contracts. Other hosts can embed the API above directly. External MCP servers and language bridges remain Forge features; MCPack does not proxy or package them.
 
 ## Operating model
 

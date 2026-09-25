@@ -20,7 +20,7 @@ A failed process or timeout does not prove an external side effect failed. The a
 
 ## 4. One core for Forge and standalone serving
 
-Forge’s `v0.10.0` prototype calls MCPackRuntime directly for native projects; the CLI wraps the same runtime with an SDK server. The manifest, validation and result behavior therefore remain the same. SDK server construction is separate from runtime ownership so a host can control shutdown and eventual HTTP lifecycle.
+Forge’s `v0.10.0` prototype launches the MCPack CLI over stdio and forwards its native capabilities through Forge’s Streamable HTTP endpoint. The CLI wraps MCPackRuntime with an SDK server; other hosts can use the embedding API directly. The manifest, validation and result behavior therefore remain the same. SDK server construction is separate from runtime ownership so a host can control shutdown and eventual HTTP lifecycle.
 
 Forge’s legacy custom execution protocol starts one process per execution and reads a single JSON response. It cannot consume this persistent-worker contract unchanged. Migration must explicitly replace its native execution path; bridges and remote sources stay behind Forge's own source interface.
 
