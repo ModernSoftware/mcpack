@@ -126,6 +126,10 @@ for (const runtime of ['node', 'python']) {
     await assert.rejects(host.getPrompt('large'), outputError);
     assert.equal(host.health().workers.main.state, 'ready');
     assert.equal((await host.callTool('main', {})).content[0].text, '');
+    assert.equal(
+      (await host.callTool('main', { size: 1, char: '\ud800' })).content[0].text,
+      '\ud800',
+    );
   });
 
   test(`${runtime}: bypassed output limit retires only offending worker and settles queued work`, async (t) => {

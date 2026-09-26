@@ -20,7 +20,7 @@ _max_output_bytes = 1024 * 1024
 
 def send(message):
     frame = json.dumps({"v": 1, **message}, allow_nan=False, ensure_ascii=False,
-                       separators=(",", ":")).encode("utf-8")
+                       separators=(",", ":")).encode("utf-8", errors="backslashreplace")
     if len(frame) > _max_output_bytes:
         payload = {"v": 1, "type": "error", "code": "OUTPUT_LIMIT_EXCEEDED",
                    "message": "Worker response exceeded maxOutputBytes."}
