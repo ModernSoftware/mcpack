@@ -58,17 +58,28 @@ for (const runtimeKind of ['node', 'python']) {
   const code = (expected) => (error) => error.code === expected;
 
   test('worker state persists; named workers have separate processes and run concurrently', async (t) => {
-    const { runtime } = await fixture(t);
+    const { runtime } = await fixture(t, { maxConcurrent: 2 });
     await runtime.start();
-    const first = await runtime.callTool('primary');
-    const second = await runtime.callTool('primary');
+    
+    // Test that state persists across sequential calls
+    const sequential1 = await runtime.callTool('primary');
+    const sequential2 = await runtime.callTool('primary');
+    assert.equal(sequential2.structuredContent.count, 2);
+    
+    // Now test concurrent execution
+    const first = runtime.callTool('primary', { delay: 150 });
+    const second = runtime.callTool('primary');
+    
+    const [firstResult, secondResult] = await Promise.all([first, second]);
 
-    assert.equal(second.structuredContent.count, 2);
-    assert.equal(first.structuredContent.pid, second.structuredContent.pid);
+    // Because they run concurrently, the exact ordering of 'count' updates 
+    // depends on the worker's asynchronous scheduling. However, both should
+    // share the same PID.
+    assert.equal(firstResult.structuredContent.pid, secondResult.structuredContent.pid);
 
     const other = await runtime.callTool('secondary');
 
-    assert.notEqual(first.structuredContent.pid, other.structuredContent.pid);
+    assert.notEqual(firstResult.structuredContent.pid, other.structuredContent.pid);
 
     let slowFinished = false;
 
@@ -82,13 +93,17 @@ for (const runtimeKind of ['node', 'python']) {
   });
 
   test('FIFO, bounded queue and queued cancellation leave active worker usable', async (t) => {
-    const { runtime } = await fixture(t, { maxQueue: 1 });
+    const { runtime } = await fixture(t, { maxQueue: 1, maxConcurrent: 1 });
     await runtime.start();
     const active = runtime.callTool('primary', { delay: 150 });
     const controller = new AbortController();
     const queued = runtime.callTool('primary', {}, controller.signal);
     const cancelled = assert.rejects(queued, code('CANCELLED'));
+    
+    // We expect the third call to fail immediately with QUEUE_FULL because:
+    // 1 call is active, 1 call is queued (filling the maxQueue of 1)
     await assert.rejects(runtime.callTool('primary'), code('QUEUE_FULL'));
+    
     controller.abort();
     await cancelled;
     await active;
@@ -96,7 +111,7 @@ for (const runtimeKind of ['node', 'python']) {
   });
 
   test('active timeout fails queued work without retry; other worker survives', async (t) => {
-    const { runtime } = await fixture(t, { timeoutMs: 100 });
+    const { runtime } = await fixture(t, { timeoutMs: 100, maxConcurrent: 1 });
     await runtime.start();
 
     const hung = assert.rejects(
@@ -111,7 +126,7 @@ for (const runtimeKind of ['node', 'python']) {
   });
 
   test('active cancellation retires worker and queued requests settle', async (t) => {
-    const { runtime } = await fixture(t);
+    const { runtime } = await fixture(t, { maxConcurrent: 1 });
     await runtime.start();
     const controller = new AbortController();
 

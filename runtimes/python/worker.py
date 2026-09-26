@@ -81,8 +81,7 @@ class Runner:
     def __init__(self):
         self.worker = None
         self.context = None
-        self.active = None
-        self.signal = None
+        self.active = {}
         self.request_id = None
 
     async def initialize(self, message):
@@ -107,8 +106,9 @@ class Runner:
         send({"type": "ready"})
 
     async def call(self, message, signal):
+        request_id = message["id"]
         context = SimpleNamespace(
-            **vars(self.context), request_id=message["id"], signal=signal
+            **vars(self.context), request_id=request_id, signal=signal
         )
         try:
             handler = self.worker[message["kind"]][message["handler"]]
@@ -116,25 +116,23 @@ class Runner:
                 result = await invoke(handler, message["input"], context)
             except Exception:
                 traceback.print_exc(file=sys.stderr)
-                report("HANDLER_FAILED", "Handler failed; inspect worker diagnostics.", message["id"])
+                report("HANDLER_FAILED", "Handler failed; inspect worker diagnostics.", request_id)
                 return
             try:
                 # The host validates capability-specific result shapes with the same
                 # schemas used for Node. This step rejects non-JSON Python values.
                 validate_json(result)
-                send({"type": "result", "id": message["id"], "result": result})
+                send({"type": "result", "id": request_id, "result": result})
             except (TypeError, ValueError, OverflowError, RecursionError):
-                report("INVALID_RESULT", "Handler returned a non-JSON result.", message["id"])
+                report("INVALID_RESULT", "Handler returned a non-JSON result.", request_id)
         finally:
-            self.active = None
-            self.signal = None
-            self.request_id = None
+            self.active.pop(request_id, None)
 
     async def close(self):
-        if self.signal:
-            self.signal.abort()
-        if self.active:
-            await self.active
+        for task, signal in self.active.values():
+            signal.abort()
+        for task, _ in self.active.values():
+            await task
         if self.worker and "close" in self.worker:
             await invoke(self.worker["close"])
         send({"type": "closed"})
@@ -151,13 +149,14 @@ class Runner:
             operation = message["type"]
             if operation == "init" and self.worker is None:
                 await self.initialize(message)
-            elif operation == "call" and self.worker is not None and self.active is None:
-                self.signal = AbortSignal()
-                self.request_id = message["id"]
-                self.active = asyncio.create_task(self.call(message, self.signal))
+            elif operation == "call" and self.worker is not None:
+                signal = AbortSignal()
+                task = asyncio.create_task(self.call(message, signal))
+                self.active[message["id"]] = (task, signal)
             elif operation == "cancel":
-                if self.request_id == message["id"] and self.signal:
-                    self.signal.abort()
+                if message["id"] in self.active:
+                    _, signal = self.active[message["id"]]
+                    signal.abort()
             elif operation == "close":
                 await self.close()
                 return

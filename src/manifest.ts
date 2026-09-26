@@ -34,6 +34,7 @@ const workerFields = {
     .max(1024 * 1024)
     .default(64 * 1024),
   maxQueue: z.number().int().min(0).max(1000).default(32),
+  maxConcurrent: z.number().int().min(1).max(1000).default(32),
 };
 
 const WorkerSchema = z.discriminatedUnion('runtime', [

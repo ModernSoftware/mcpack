@@ -25,7 +25,7 @@ export class ProcessWorker {
   private transport?: WorkerProcess;
   private state: 'new' | 'starting' | 'ready' | 'failed' | 'closed' = 'new';
   private queue: Pending[] = [];
-  private active?: Pending;
+  private active = new Map<string, Pending>();
   private ready?: { resolve(): void; reject(error: MCPackError): void };
   private exited: Promise<void> = Promise.resolve();
   private closing?: Promise<void>;
@@ -132,7 +132,7 @@ export class ProcessWorker {
 
     if (signal?.aborted) return Promise.reject(new MCPackError('CANCELLED', 'Request cancelled'));
 
-    if (this.active && this.queue.length >= this.definition.maxQueue)
+    if (this.queue.length >= this.definition.maxQueue)
       return Promise.reject(new MCPackError('QUEUE_FULL', `Worker ${this.id} queue is full`));
 
     return new Promise((resolve, reject) => {
@@ -163,13 +163,14 @@ export class ProcessWorker {
   }
 
   private dispatch(): void {
-    if (this.state !== 'ready' || this.active) return;
+    if (this.state !== 'ready') return;
 
-    this.active = this.queue.shift();
-
-    if (this.active) {
-      const { id, kind, handler, input } = this.active;
-      this.send({ type: 'call', id, kind, handler, input });
+    while (this.queue.length > 0 && this.active.size < this.definition.maxConcurrent) {
+      const pending = this.queue.shift();
+      if (pending) {
+        this.active.set(pending.id, pending);
+        this.send({ type: 'call', id: pending.id, kind: pending.kind, handler: pending.handler, input: pending.input });
+      }
     }
   }
 
@@ -194,12 +195,16 @@ export class ProcessWorker {
     if (message.type === 'error' && !message.id)
       return this.fail(new MCPackError(message.code, message.message));
 
-    if ((message.type !== 'result' && message.type !== 'error') || message.id !== this.active?.id) {
+    if ((message.type !== 'result' && message.type !== 'error') || (message.id && !this.active.has(message.id))) {
       return this.fail(new MCPackError('WORKER_PROTOCOL_ERROR', 'Unexpected worker response'));
     }
 
-    const pending = this.active!;
-    this.active = undefined;
+    if (!message.id) return; // Should not happen given the check above and error without id check earlier
+    
+    const pending = this.active.get(message.id);
+    if (!pending) return;
+
+    this.active.delete(message.id);
     pending.cleanup();
 
     if (message.type === 'error') pending.reject(new MCPackError(message.code, message.message));
@@ -209,9 +214,9 @@ export class ProcessWorker {
   }
 
   private cancel(id: string, error: MCPackError): void {
-    if (this.active?.id === id) {
-      const active = this.active;
-      this.active = undefined;
+    const active = this.active.get(id);
+    if (active) {
+      this.active.delete(id);
       active.cleanup();
       active.reject(error);
       this.send({ type: 'cancel', id });
@@ -244,12 +249,12 @@ export class ProcessWorker {
     this.ready?.reject(error);
     this.ready = undefined;
 
-    for (const pending of [...(this.active ? [this.active] : []), ...this.queue]) {
+    for (const pending of [...this.active.values(), ...this.queue]) {
       pending.cleanup();
       pending.reject(error);
     }
 
-    this.active = undefined;
+    this.active.clear();
     this.queue = [];
   }
 
@@ -266,7 +271,7 @@ export class ProcessWorker {
   snapshot() {
     return {
       state: this.state,
-      active: Boolean(this.active),
+      active: this.active.size,
       queued: this.queue.length,
       diagnostics: this.diagnosticLimiter?.snapshot() ?? { forwardedBytes: 0, droppedBytes: 0 },
     };

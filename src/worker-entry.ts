@@ -4,7 +4,7 @@ import { parentMessage, toolResult, resourceResult, promptResult } from './wire.
 
 let worker: NativeWorker | undefined;
 let context: WorkerContext;
-let active: { id: string; controller: AbortController; task: Promise<void> } | undefined;
+let active = new Map<string, { id: string; controller: AbortController; task: Promise<void> }>();
 let closing = false;
 let maxOutputBytes = 1024 * 1024;
 
@@ -28,8 +28,8 @@ async function close(): Promise<void> {
   if (closing) return;
 
   closing = true;
-  active?.controller.abort();
-  await active?.task;
+  for (const call of active.values()) call.controller.abort();
+  await Promise.all(Array.from(active.values()).map(call => call.task));
   await worker?.close?.();
   send({ type: 'closed' });
   process.disconnect?.();
@@ -73,7 +73,7 @@ process.on('message', async (raw) => {
 
       send({ type: 'ready' });
     } else if (message.type === 'call') {
-      if (!worker || active || closing) throw new Error('Worker is not ready to accept a call');
+      if (!worker || closing) throw new Error('Worker is not ready to accept a call');
 
       const table = worker[message.kind];
       const handler =
@@ -131,13 +131,14 @@ process.on('message', async (raw) => {
             message: 'Handler result could not be serialized.',
           });
         } finally {
-          active = undefined;
+          active.delete(message.id);
         }
       });
 
-      active = { id: message.id, controller, task };
+      active.set(message.id, { id: message.id, controller, task });
     } else if (message.type === 'cancel') {
-      if (active?.id === message.id) active.controller.abort();
+      const activeCall = active.get(message.id);
+      if (activeCall) activeCall.controller.abort();
     } else await close();
   } catch (error) {
     process.stderr.write(`${String(error)}\n`);
