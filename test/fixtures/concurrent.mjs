@@ -30,6 +30,6 @@ export function createWorker(context) {
         return { messages: [{ role: 'user', content: { type: 'text', text: 'prompt' } }] };
       },
     },
-    close: () => appendFile(path('closed'), 'closed\n'),
+    close: () => appendFile(path(`closed-${context.workerId}`), 'closed\n'),
   };
 }

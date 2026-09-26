@@ -149,8 +149,8 @@ for (const kind of ['node', 'python']) {
     await Promise.all(calls);
     assert.equal(await f.read('finished-first'), 'finished');
     assert.equal(await f.read('finished-second'), 'finished');
-    // Both named workers share this marker; each closes once.
-    assert.equal(await f.read('closed'), 'closed\nclosed\n');
+    assert.equal(await f.read('closed-primary'), 'closed\n');
+    assert.equal(await f.read('closed-secondary'), 'closed\n');
     assert.equal(f.diagnostics.join('').includes('dictionary changed size'), false);
   });
 

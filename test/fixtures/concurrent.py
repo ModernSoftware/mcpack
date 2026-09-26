@@ -48,8 +48,8 @@ def create_worker(context):
         }}]}
 
     def close():
-        with (root / "closed").open("a") as marker:
-            marker.write("closed\n")
+        with (root / f"closed-{context.worker_id}").open("ab") as marker:
+            marker.write(b"closed\n")
 
     return {"tools": {"probe": probe, "sync": sync_probe},
             "resources": {"read": read}, "prompts": {"render": render}, "close": close}
