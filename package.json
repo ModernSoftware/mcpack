@@ -1,10 +1,9 @@
 {
-  "name": "@modernsoftware/mcpack",
+  "name": "@modern-software/mcpack",
   "version": "0.1.0-alpha.1",
   "description": "Native MCP capabilities backed by persistent runtime workers",
   "type": "module",
-  "private": true,
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "engines": {
     "node": ">=22"
   },
@@ -23,7 +22,9 @@
     "runtimes",
     "examples",
     "docs",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "NOTICE"
   ],
   "scripts": {
     "build": "tsc",
@@ -62,5 +63,9 @@
     "tools",
     "python",
     "typescript"
-  ]
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
 }

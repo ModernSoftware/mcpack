@@ -3,6 +3,8 @@ import { execFileSync } from 'node:child_process';
 
 const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
 for (const path of [
+  'LICENSE',
+  'NOTICE',
   'dist/index.js',
   'dist/index.d.ts',
   'dist/cli.js',
@@ -10,6 +12,12 @@ for (const path of [
 ]) {
   await access(new URL(`../${path}`, import.meta.url));
 }
+if (
+  pkg.name !== '@modern-software/mcpack' ||
+  pkg.license !== 'Apache-2.0' ||
+  pkg.publishConfig?.access !== 'public'
+)
+  throw new Error('Expected the approved public npm scope and Apache-2.0 license');
 if (pkg.repository?.url !== 'git+https://github.com/ModernSoftware/mcpack.git')
   throw new Error('Unexpected package repository');
 if (!/^\d+\.\d+\.\d+-alpha\.\d+$/.test(pkg.version))

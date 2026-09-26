@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400" role="img" aria-labelledby="title desc">
+<title id="title">MCPack — One manifest. Multiple runtimes. Standard MCP.</title>
+<desc id="desc">Modern Software's native MCP runtime for Node and Python, with persistent workers and HTTP or stdio serving.</desc>
+<defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#0c1528"/><stop offset="1" stop-color="#172c42"/></linearGradient><linearGradient id="accent"><stop stop-color="#58e2cb"/><stop offset="1" stop-color="#8ab6ff"/></linearGradient></defs>
+<rect width="1200" height="400" rx="24" fill="url(#bg)"/>
+<g fill="none" stroke="#2d526c" opacity=".5"><circle cx="1060" cy="190" r="240"/><circle cx="1060" cy="190" r="290"/><circle cx="1060" cy="190" r="340"/></g>
+<g font-family="DejaVu Sans,Arial,sans-serif">
+<g transform="translate(52 42)" fill="none" stroke="url(#accent)" stroke-width="3"><path d="M0 16 28 0 56 16 28 32Z"/><path d="m0 28 28 16 28-16M0 40l28 16 28-16"/></g>
+<text x="130" y="84" fill="#ffffff" font-size="38" font-weight="700">MCPack</text><text x="54" y="147" fill="#83dccf" font-size="13" letter-spacing="3">BY MODERN SOFTWARE</text>
+<text x="52" y="210" fill="#ffffff" font-size="42" font-weight="700">One manifest.</text><text x="52" y="264" fill="#ffffff" font-size="42" font-weight="700">Multiple runtimes.</text><text x="52" y="318" fill="url(#accent)" font-size="42" font-weight="700">Standard MCP.</text>
+<rect x="708" y="76" width="430" height="250" rx="16" fill="#0a1323" stroke="#3c657b"/>
+<path d="M708 119h430" stroke="#28465b"/><circle cx="732" cy="98" r="4" fill="#58e2cb"/><circle cx="748" cy="98" r="4" fill="#8ab6ff"/><text x="774" y="104" fill="#bfd0e3" font-size="14">mcpack.json</text>
+<g font-family="DejaVu Sans Mono,monospace" font-size="17"><text x="738" y="160" fill="#e4eefb">{</text><text x="758" y="194" fill="#8ab6ff">"workers": {</text><text x="778" y="228" fill="#58e2cb">"api": { "runtime": "node" },</text><text x="778" y="262" fill="#58e2cb">"data": { "runtime": "python" }</text><text x="758" y="291" fill="#8ab6ff">}</text><text x="738" y="314" fill="#e4eefb">}</text></g>
+<text x="708" y="358" fill="#c0d4e5" font-size="14">PERSISTENT WORKERS  /  HTTP + STDIO</text>
+</g></svg>

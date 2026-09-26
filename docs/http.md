@@ -61,7 +61,7 @@ browser cross-origin credentials/preflight policies remain a reverse-proxy conce
 Embedding hosts can use their own asynchronous authentication/authorization logic:
 
 ```ts
-import { serveHttp } from '@modernsoftware/mcpack';
+import { serveHttp } from '@modern-software/mcpack';
 
 const host = await serveHttp('/project/mcpack.json', {
   host: '127.0.0.1',

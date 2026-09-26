@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
+<title id="title">MCPack architecture</title><desc id="desc">Agents or Forge connect over MCP to a Node host. A manifest binds tools, resources and prompts to persistent Node and Python worker processes. Worker traffic uses private IPC, not MCP.</desc>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="m0 0 8 4-8 4" fill="#4e8caf"/></marker></defs>
+<rect width="1200" height="420" rx="20" fill="#f3f7fb"/>
+<g font-family="DejaVu Sans,Arial,sans-serif"><text x="40" y="48" fill="#172c42" font-size="23" font-weight="700">A single MCP surface. Independent native workers.</text>
+<g stroke="#4e8caf" stroke-width="2" fill="none" marker-end="url(#arrow)"><path d="M265 155H395"/><path d="M265 284H328V209H395"/><path d="M735 177H819V154H885"/><path d="M735 217H819V286H885"/><path d="M565 319V263"/></g>
+<rect x="40" y="112" width="225" height="85" rx="12" fill="#fff" stroke="#b4c7d8"/><text x="67" y="147" fill="#172c42" font-size="17" font-weight="700">Agent / MCP client</text><text x="67" y="175" fill="#4e647b" font-size="15">HTTP or stdio</text>
+<rect x="40" y="242" width="225" height="85" rx="12" fill="#fff" stroke="#b4c7d8"/><text x="67" y="277" fill="#172c42" font-size="20" font-weight="700">MCP Forge</text><text x="67" y="305" fill="#4e647b" font-size="13">Develop and test via stdio</text>
+<rect x="395" y="111" width="340" height="152" rx="14" fill="#11263b"/><text x="430" y="152" fill="#ffffff" font-size="25" font-weight="700">MCPack · Node host</text><text x="430" y="187" fill="#8de6d5" font-size="17">Tools · Resources · Prompts</text><text x="430" y="222" fill="#d0ddec" font-size="15">Validation · Queues · Lifecycle</text>
+<rect x="447" y="319" width="236" height="62" rx="10" fill="#e0eef7" stroke="#9ab7cd"/><text x="477" y="357" fill="#172c42" font-size="16">Manifest + source files</text>
+<rect x="885" y="110" width="273" height="90" rx="12" fill="#e0f5ed" stroke="#8ebfae"/><text x="913" y="148" fill="#164e41" font-size="21" font-weight="700">Node worker</text><text x="913" y="176" fill="#355f57" font-size="15">Factory + native handlers</text>
+<rect x="885" y="241" width="273" height="90" rx="12" fill="#e4eefa" stroke="#98b5d7"/><text x="913" y="279" fill="#1c446e" font-size="21" font-weight="700">Python worker</text><text x="913" y="307" fill="#355778" font-size="15">Factory + native handlers</text>
+<text x="755" y="373" fill="#4e647b" font-size="14">Private IPC · one process per named worker</text></g></svg>
