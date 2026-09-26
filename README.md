@@ -1,8 +1,43 @@
+<p align="center">
+  <img src="docs/assets/banner.svg" alt="MCPack — Native MCP tools. Multiple runtimes. One manifest." width="100%" />
+</p>
+
+<p align="center">
+  <a href="https://github.com/ModernSoftware/mcpack/actions/workflows/ci.yml"><img src="https://github.com/ModernSoftware/mcpack/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="Apache 2.0" /></a>
+  <img src="https://img.shields.io/badge/Node.js-22%2B-43853d" alt="Node.js 22+" />
+  <img src="https://img.shields.io/badge/Python-3.11%2B-3776ab" alt="Python 3.11+" />
+  <img src="https://img.shields.io/badge/status-alpha-orange" alt="Alpha" />
+</p>
+
+<p align="center">
+  <a href="#run-the-example">Quick start</a> ·
+  <a href="docs/contracts.md">Contracts</a> ·
+  <a href="docs/http.md">HTTP & authentication</a> ·
+  <a href="CONTRIBUTING.md">Contribute</a>
+</p>
+
 # MCPack
 
 MCPack runs native MCP tools, resources, and prompts from a versioned project manifest. It keeps handler processes alive between calls and exposes their capabilities through the official TypeScript MCP SDK.
 
 This alpha supports **Node and Python native workers**. Modern MCP Forge’s `v0.10.0` branch contains the first native integration; it is not yet a production release.
+
+## Write handlers. Keep your runtime. Serve MCP.
+
+| Capability           | What you get                                                         |
+| -------------------- | -------------------------------------------------------------------- |
+| 🧩 One manifest      | Declare tools, resources, prompts, entrypoints, and worker settings. |
+| 🟢 Node + 🐍 Python  | Keep language-specific dependencies and persistent factory state.    |
+| 🔌 Two transports    | Start a stdio server or a standalone Streamable HTTP endpoint.       |
+| ⏱️ Bounded execution | Queue limits, deadlines, cancellation, and bounded shutdown.         |
+| 🛠️ Develop in Forge  | Test the same native manifest and code used by the standalone CLI.   |
+
+![MCPack architecture: clients reach one Node host backed by persistent Node and Python workers](docs/assets/architecture.svg)
+
+**MCPack owns native execution and deployment.** Modern MCP Forge provides the development
+UI. External MCP connections and language bridges belong to Forge's integration roadmap;
+MCPack does not bundle or proxy them.
 
 ## Run the example
 
@@ -136,7 +171,7 @@ The standalone CLI supports stdio and HTTP. Forge continues to own its separate 
 Once the package is installed from a local tarball or workspace:
 
 ```ts
-import { MCPackRuntime, createMcpServer } from '@modernsoftware/mcpack';
+import { MCPackRuntime, createMcpServer } from '@modern-software/mcpack';
 
 const runtime = await MCPackRuntime.load('/project/mcpack.json', {
   diagnostic: (worker, stream, text) => console.error(worker, stream, text),
@@ -171,7 +206,33 @@ Not implemented: OAuth/tenant identity propagation, .NET workers, replicated wor
 
 Handler code is **trusted executable code**. A child process and a project-relative entrypoint are not a sandbox. Modules can import other files, access the network and filesystem, spawn children, and cause side effects. Use deployment isolation for untrusted code. Killing a worker does not manage arbitrary descendants it spawned.
 
-The package is private and unlicensed pending the owner’s distribution decision. Release-candidate and manually dispatched npm-alpha workflows are prepared; publishing stays disabled until those decisions are recorded. `npm pack` creates a local installable package; registry publication is intentionally disabled.
+## Distribution
+
+The package is configured for public publication as **`@modern-software/mcpack`** under
+**Apache-2.0**. Registry publication is a separate, manually controlled release step;
+this README does not imply that the first alpha has been published.
+
+Until the first release, use the repository or install an `npm pack` tarball.
+After publication, install the alpha in your own project:
+
+```sh
+npm install @modern-software/mcpack@alpha
+npx mcpack validate ./mcpack.json
+npx mcpack serve ./mcpack.json --transport http --port 3000
+```
+
+Node and optional Python interpreters are deployment prerequisites, not bundled runtimes.
+
+## Contributing
+
+Start with an [issue](https://github.com/ModernSoftware/mcpack/issues), then submit a focused
+pull request. See [CONTRIBUTING.md](CONTRIBUTING.md) for local checks and the
+[repository workflow](docs/repository-governance.md) for branch protection.
+
+## License
+
+Copyright 2026 Modern Software and MCPack contributors. Licensed under the
+[Apache License, Version 2.0](LICENSE). See [NOTICE](NOTICE).
 
 See [contracts](docs/contracts.md), [architecture decisions](docs/architecture.md), and [implementation roadmap](docs/roadmap.md).
 

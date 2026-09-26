@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -38,7 +38,12 @@ try {
     { cwd: root },
   );
 
-  const installed = join(root, 'node_modules', '@modernsoftware', 'mcpack');
+  const installed = join(root, 'node_modules', '@modern-software', 'mcpack');
+  const metadata = JSON.parse(await readFile(join(installed, 'package.json'), 'utf8'));
+  assert.equal(metadata.name, '@modern-software/mcpack');
+  assert.equal(metadata.license, 'Apache-2.0');
+  assert.match(await readFile(join(installed, 'LICENSE'), 'utf8'), /Apache License/);
+  assert.match(await readFile(join(installed, 'NOTICE'), 'utf8'), /Modern Software/);
   const cli = join(installed, 'dist', 'cli.js');
   for (const example of ['hello', 'mixed']) {
     const manifest = join(installed, 'examples', example, 'mcpack.json');

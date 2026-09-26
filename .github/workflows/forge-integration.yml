@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ModernSoftware/modern-mcp-forge
-          ref: a351a96d2874f2e3ac9e97931fe527b8ec7d157e
+          ref: 13f0a39967eddf5ed44804d2f012e7d776f790f5
           path: forge
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -37,7 +37,7 @@ jobs:
       - name: Install Forge dependencies
         working-directory: forge
         run: bun install --frozen-lockfile
-      - name: Build and install the private MCPack package locally
+      - name: Build and install the MCPack package locally
         working-directory: forge
         run: bun run mcpack:setup -- ../mcpack
       - name: Verify native workflow and standalone parity
