@@ -17,18 +17,20 @@ The public manifest uses `schemaVersion: 1`. The private worker protocol indepen
 
 Names are unique within each capability category. Resource URIs and argument names within a prompt are unique. Cross-category equal names are permitted because their MCP operations differ. Every binding must reference an existing worker. Unbound handler functions are not published.
 
-| Worker field        | Default and meaning                                                                                    |
-| ------------------- | ------------------------------------------------------------------------------------------------------ |
-| `runtime`           | Required; `node` or `python`                                                                           |
-| `module`            | Required project-relative entrypoint; symlinks resolved and entrypoint must remain inside project root |
-| `export`            | `createWorker` for Node; `create_worker` for Python                                                    |
-| `config`            | `{}`; JSON configuration passed to the factory                                                         |
-| `inheritEnv`        | `[]`; parent variable names explicitly forwarded                                                       |
-| `env`               | `{}`; literal values override inherited environment                                                    |
-| `startupTimeoutMs`  | `10000`; 1–300000                                                                                      |
-| `timeoutMs`         | `30000`; 1–300000, includes queue wait                                                                 |
-| `shutdownTimeoutMs` | `3000`; 1–30000                                                                                        |
-| `maxQueue`          | `32`; 0–1000 pending requests, excluding the active request                                            |
+| Worker field                  | Default and meaning                                                                                    |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `runtime`                     | Required; `node` or `python`                                                                           |
+| `module`                      | Required project-relative entrypoint; symlinks resolved and entrypoint must remain inside project root |
+| `export`                      | `createWorker` for Node; `create_worker` for Python                                                    |
+| `config`                      | `{}`; JSON configuration passed to the factory                                                         |
+| `inheritEnv`                  | `[]`; parent variable names explicitly forwarded                                                       |
+| `env`                         | `{}`; literal values override inherited environment                                                    |
+| `startupTimeoutMs`            | `10000`; 1–300000                                                                                      |
+| `timeoutMs`                   | `30000`; 1–300000, includes queue wait                                                                 |
+| `shutdownTimeoutMs`           | `3000`; 1–30000                                                                                        |
+| `maxOutputBytes`              | `1048576`; 1024–67108864 bytes per serialized worker response envelope                                 |
+| `maxDiagnosticBytesPerSecond` | `65536`; 0–1048576 UTF-8 bytes forwarded per worker per fixed one-second window; 0 mutes diagnostics   |
+| `maxQueue`                    | `32`; 0–1000 pending requests, excluding the active request                                            |
 
 A worker runs with project root as cwd. Node uses the host’s Node executable without inherited CLI flags. Python uses the optional `executable` field (Python workers only), defaulting to `python` on Windows and `python3` elsewhere. An executable containing a path separator is resolved relative to the project; a bare name is resolved through PATH. It is never evaluated by a shell. Basic PATH/Path, SystemRoot/SYSTEMROOT, WINDIR, TEMP and TMP values are forwarded when present. Other values require opt-in. MCPack does not load `.env` files or expand `${VARIABLE}` strings. Factory code may use its own configuration library.
 
@@ -77,6 +79,7 @@ Factory-owned state is shared by calls assigned to that worker, including differ
 | INVALID_MANIFEST      | Invalid manifest, schema, binding, or entrypoint path |
 | INVALID_ARGUMENTS     | Tool schema or prompt argument validation failed      |
 | NOT_FOUND             | Capability does not exist                             |
+| OUTPUT_LIMIT_EXCEEDED | Worker response or raw frame exceeded its byte budget |
 | INVALID_RESULT        | Handler output violates the native result contract    |
 | HANDLER_FAILED        | Handler threw; worker can continue serving            |
 | STARTUP_FAILED        | Factory/binding initialization failed or timed out    |
@@ -94,8 +97,49 @@ At the MCP boundary, INVALID_ARGUMENTS and NOT_FOUND map to JSON-RPC `-32602`; o
 
 Node uses a dedicated fork IPC channel with JSON serialization. It never multiplexes protocol frames with stdout. The host sends init, call, cancel and close; the child sends ready, result, error and closed. Calls and responses carry a host-generated ID. Unexpected IDs or invalid messages retire the worker.
 
-Python uses UTF-8 newline-delimited JSON over its private stdin/stdout pipes with the same message envelope. The runner redirects Python `print()` to stderr before importing handlers. Low-level writes to fd 1 are forbidden and can retire the worker as a protocol failure. This private transport is not promised to external frameworks. Workers do not implement MCP themselves. No fixed per-message byte limit or memory quota is implemented yet. The queue is bounded by count, so deployments must constrain input sizes and memory independently before exposing untrusted traffic.
+Python uses UTF-8 newline-delimited JSON over its private stdin/stdout pipes with the same message envelope. The runner redirects Python `print()` to stderr before importing handlers. Low-level writes to fd 1 are forbidden and can retire the worker as a protocol failure. This private transport is not promised to external frameworks. Workers do not implement MCP themselves. Worker-to-host output is bounded as described below. There is no worker memory quota or general host-to-worker message-byte limit. The queue is bounded by count, so deployments must constrain input sizes and memory independently before exposing untrusted traffic.
 
 Python factory conventions, interpreter selection, and result restrictions are documented in [Python native workers](python.md).
 
-`MCPackRuntime.health()` returns runtime state, aggregate readiness, and each worker’s state, active flag, and queued count. The HTTP host uses it for readiness. `createMcpServer(runtime, { signal })` optionally combines a transport request signal with SDK call cancellation; existing single-argument callers remain supported.
+`MCPackRuntime.health()` returns runtime state, aggregate readiness, and each worker’s state, active flag, and queued count, plus `diagnostics.forwardedBytes` and `diagnostics.droppedBytes` cumulative counters. The HTTP host uses it for readiness. `createMcpServer(runtime, { signal })` optionally combines a transport request signal with SDK call cancellation; existing single-argument callers remain supported.
+
+## Output limits and compatibility
+
+`maxOutputBytes` measures UTF-8 bytes of the compact JSON worker response envelope,
+including version, response type, request ID and result. It excludes the Python line
+terminator and Node IPC framing. JSON escaping counts; character count is not byte count.
+The exact limit is accepted. This is a private-transport budget, not an MCP HTTP response
+size guarantee: SDK wrapping and discovery responses have separate overhead.
+
+The bundled Node/Python runners replace an oversized response with a small
+`OUTPUT_LIMIT_EXCEEDED` error. The active request fails, queued work continues and the
+worker remains usable. This never retries a handler or rolls back completed side effects.
+If code bypasses the runner and emits an oversized raw frame, the host retires that
+worker and rejects its active/queued requests with the same code. Other workers remain
+available. Existing MCP mapping is retained: JSON-RPC -32603 with `data.mcpackCode`.
+
+Python partial frames are counted as bytes and bounded before decoding/JSON parsing,
+even without a newline. Invalid UTF-8 and unfinished frames are protocol errors.
+Node's bundled runner checks before `process.send`; the host checks again after Node
+has deserialized IPC. Direct application use of `process.send` can therefore allocate
+memory before the host rejects it. Handler results and JSON serialization also allocate
+memory inside a worker before size checking. These limits are not a sandbox, process
+memory limit, or defense against arbitrary hostile code. Use container/process limits
+and bounded DB/S3 queries in deployments.
+
+Diagnostics use a shared budget for stdout/stderr per worker. The window starts at
+worker launch and resets when output arrives at least one second after its previous
+start (not a sliding window; boundary bursts can span two budgets). Excess bytes are
+discarded while pipes keep draining; no backlog is retained for later delivery. Each
+callback contains at most 8192 UTF-8 bytes. Truncated output may omit partial characters;
+callbacks do not introduce half-characters. Counters measure UTF-8 bytes after stream
+text decoding and remain available in health snapshots. Consumer exceptions are ignored;
+forwarded bytes count delivery attempts. Consumers own any buffering/storage they add,
+and slow synchronous callbacks can still block the host event loop.
+
+Manifest schema version and handler signatures remain v1. Existing manifests gain finite
+defaults: workloads returning more than 1 MiB or emitting more than 64 KiB of diagnostics
+per window must configure budgets or reduce/paginate their output. Older package versions
+reject the new fields; pin and upgrade MCPack before adding them. Treat unknown future
+infrastructure error codes as failures rather than assuming an exhaustive fixed list.
+Do not depend on private worker transport layouts across package versions.

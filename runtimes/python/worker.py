@@ -15,11 +15,19 @@ _protocol_out = sys.stdout.buffer
 _protocol_in = sys.stdin.buffer
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 sys.stdout = sys.stderr
+_max_output_bytes = 1024 * 1024
 
 
 def send(message):
-    frame = json.dumps({"v": 1, **message}, allow_nan=False, ensure_ascii=True)
-    _protocol_out.write((frame + "\n").encode("utf-8"))
+    frame = json.dumps({"v": 1, **message}, allow_nan=False, ensure_ascii=False,
+                       separators=(",", ":")).encode("utf-8")
+    if len(frame) > _max_output_bytes:
+        payload = {"v": 1, "type": "error", "code": "OUTPUT_LIMIT_EXCEEDED",
+                   "message": "Worker response exceeded maxOutputBytes."}
+        if "id" in message:
+            payload["id"] = message["id"]
+        frame = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+    _protocol_out.write(frame + b"\n")
     _protocol_out.flush()
 
 
@@ -78,6 +86,8 @@ class Runner:
         self.request_id = None
 
     async def initialize(self, message):
+        global _max_output_bytes
+        _max_output_bytes = message["maxOutputBytes"]
         self.context = SimpleNamespace(
             worker_id=message["workerId"],
             project_root=message["projectRoot"],

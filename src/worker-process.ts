@@ -1,3 +1,4 @@
+import { WorkerFrameReader } from './worker-framing.js';
 import { fork, spawn, type ChildProcess } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import type { WorkerDefinition } from './manifest.js';
@@ -37,29 +38,25 @@ export function launchWorker(
 
   if (node) {
     child.stdout?.on('data', (data: Buffer) => diagnostic('stdout', data.toString('utf8')));
-    child.on('message', receive);
+    child.on('message', (message) => {
+      // Node deserializes IPC before this hook. The bundled runner bounds normal
+      // responses before sending; this second check detects protocol bypasses.
+      try {
+        if (Buffer.byteLength(JSON.stringify(message), 'utf8') > definition.maxOutputBytes) {
+          fail(new MCPackError('OUTPUT_LIMIT_EXCEEDED', 'Worker frame exceeded maxOutputBytes.'));
+          return;
+        }
+        receive(message);
+      } catch {
+        fail(new MCPackError('WORKER_PROTOCOL_ERROR', 'Invalid Node worker frame'));
+      }
+    });
     child.on('disconnect', () => fail(new MCPackError('WORKER_EXITED', 'Worker disconnected')));
   } else {
     // Python owns stdout as a UTF-8 JSON-lines channel; print() is redirected to stderr.
-    child.stdout?.setEncoding('utf8');
-    let pending = '';
-    let broken = false;
-    child.stdout?.on('data', (data: string) => {
-      if (broken) return;
-      pending += data;
-      let newline: number;
-      while ((newline = pending.indexOf('\n')) !== -1) {
-        const line = pending.slice(0, newline);
-        pending = pending.slice(newline + 1);
-        try {
-          receive(JSON.parse(line));
-        } catch {
-          broken = true;
-          fail(new MCPackError('WORKER_PROTOCOL_ERROR', 'Invalid Python worker frame'));
-          return;
-        }
-      }
-    });
+    const reader = new WorkerFrameReader(definition.maxOutputBytes, receive, fail);
+    child.stdout?.on('data', (data: Buffer) => reader.write(data));
+    child.stdout?.on('end', () => reader.end());
     child.stdin?.on('error', () => fail(new MCPackError('WORKER_EXITED', 'Worker input closed')));
   }
 

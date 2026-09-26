@@ -95,7 +95,9 @@ Native `timeoutMs` and `maxQueue` still apply inside each worker. HTTP request d
 are independent: whichever deadline expires first wins. Excess HTTP admission returns
 503; oversized bodies return 413. Compressed request bodies are not accepted. Headers
 are limited to 16 KiB. These are process-level limits, not distributed rate limiting.
-There is no worker-output byte quota or worker memory quota in this alpha.
+Worker `maxOutputBytes` and `maxDiagnosticBytesPerSecond` apply independently of HTTP
+limits; see [native contracts](contracts.md#output-limits-and-compatibility). There is no
+worker memory quota in this alpha.
 
 `GET /healthz` reports that the HTTP process is responding; `GET /readyz` returns 200
 only while every worker is ready, otherwise 503. A failed worker makes readiness fail,

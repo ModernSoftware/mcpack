@@ -1,3 +1,4 @@
+import { DiagnosticLimiter } from './output-limits.js';
 import type { ChildProcess } from 'node:child_process';
 import { launchWorker, type WorkerProcess } from './worker-process.js';
 import { randomUUID } from 'node:crypto';
@@ -30,6 +31,7 @@ export class ProcessWorker {
   private closing?: Promise<void>;
   private startupTimer?: NodeJS.Timeout;
   private killTimer?: NodeJS.Timeout;
+  private diagnosticLimiter?: DiagnosticLimiter;
 
   constructor(
     private id: string,
@@ -59,17 +61,17 @@ export class ProcessWorker {
 
     Object.assign(env, this.definition.env);
 
+    this.diagnosticLimiter = new DiagnosticLimiter(
+      this.definition.maxDiagnosticBytesPerSecond,
+      (stream, text) => this.diagnostic(this.id, stream, text),
+    );
     const transport = launchWorker(
       this.definition,
       this.project.root,
       env,
       (raw) => this.receive(raw),
       (error) => this.fail(error),
-      (stream, text) => {
-        try {
-          this.diagnostic(this.id, stream, text.slice(0, 8192));
-        } catch {}
-      },
+      (stream, text) => this.diagnosticLimiter!.write(stream, text),
     );
     this.transport = transport;
     const child = (this.child = transport.child);
@@ -110,6 +112,7 @@ export class ProcessWorker {
       module: this.definition.module,
       exportName: this.definition.export,
       config: this.definition.config,
+      maxOutputBytes: this.definition.maxOutputBytes,
       bindings,
     });
 
@@ -261,7 +264,12 @@ export class ProcessWorker {
   }
 
   snapshot() {
-    return { state: this.state, active: Boolean(this.active), queued: this.queue.length };
+    return {
+      state: this.state,
+      active: Boolean(this.active),
+      queued: this.queue.length,
+      diagnostics: this.diagnosticLimiter?.snapshot() ?? { forwardedBytes: 0, droppedBytes: 0 },
+    };
   }
 
   close(): Promise<void> {
