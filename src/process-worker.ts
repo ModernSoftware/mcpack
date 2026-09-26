@@ -19,7 +19,7 @@ interface Pending {
 
 export type Diagnostic = (workerId: string, stream: 'stdout' | 'stderr', text: string) => void;
 
-/** One persistent process, one active request, and a bounded FIFO queue. */
+/** One persistent process, bounded active calls, and a bounded FIFO waiting queue. */
 export class ProcessWorker {
   private child?: ChildProcess;
   private transport?: WorkerProcess;
@@ -132,7 +132,10 @@ export class ProcessWorker {
 
     if (signal?.aborted) return Promise.reject(new MCPackError('CANCELLED', 'Request cancelled'));
 
-    if (this.queue.length >= this.definition.maxQueue)
+    if (
+      this.active.size >= this.definition.maxConcurrent &&
+      this.queue.length >= this.definition.maxQueue
+    )
       return Promise.reject(new MCPackError('QUEUE_FULL', `Worker ${this.id} queue is full`));
 
     return new Promise((resolve, reject) => {
@@ -169,7 +172,13 @@ export class ProcessWorker {
       const pending = this.queue.shift();
       if (pending) {
         this.active.set(pending.id, pending);
-        this.send({ type: 'call', id: pending.id, kind: pending.kind, handler: pending.handler, input: pending.input });
+        this.send({
+          type: 'call',
+          id: pending.id,
+          kind: pending.kind,
+          handler: pending.handler,
+          input: pending.input,
+        });
       }
     }
   }
@@ -195,14 +204,15 @@ export class ProcessWorker {
     if (message.type === 'error' && !message.id)
       return this.fail(new MCPackError(message.code, message.message));
 
-    if ((message.type !== 'result' && message.type !== 'error') || (message.id && !this.active.has(message.id))) {
+    if (
+      (message.type !== 'result' && message.type !== 'error') ||
+      !message.id ||
+      !this.active.has(message.id)
+    ) {
       return this.fail(new MCPackError('WORKER_PROTOCOL_ERROR', 'Unexpected worker response'));
     }
 
-    if (!message.id) return; // Should not happen given the check above and error without id check earlier
-    
-    const pending = this.active.get(message.id);
-    if (!pending) return;
+    const pending = this.active.get(message.id)!;
 
     this.active.delete(message.id);
     pending.cleanup();
@@ -271,7 +281,8 @@ export class ProcessWorker {
   snapshot() {
     return {
       state: this.state,
-      active: this.active.size,
+      active: this.active.size > 0,
+      activeCount: this.active.size,
       queued: this.queue.length,
       diagnostics: this.diagnosticLimiter?.snapshot() ?? { forwardedBytes: 0, droppedBytes: 0 },
     };

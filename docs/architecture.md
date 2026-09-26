@@ -12,7 +12,7 @@ The host validates the manifest, owns MCP discovery, and schedules execution. Wo
 
 Node IPC is the first private adapter transport. Using MCP between a host and every native function process would add unnecessary discovery and protocol responsibilities to the handler contract. Python uses JSON-lines over private subprocess pipes; its runner redirects application stdout to stderr. A shared ProcessWorker scheduler owns both adapters’ queues, cancellation, deadlines, and termination. Python handlers implement the native factory contract without an MCP SDK.
 
-One active invocation per worker is deliberate. Shared state has predictable sequential access. Multiple named workers provide concurrency and fault isolation; they are not replicas or a load-balanced pool. Replication requires an explicit policy for state, routing and startup costs, so it is deferred.
+One active invocation per worker remains the default to preserve sequential shared-state access. Opt-in `maxConcurrent` permits overlapping calls for concurrency-safe handlers; all calls share the same factory state and process failure boundary. Multiple named workers provide concurrency and fault isolation; they are not replicas or a load-balanced pool. Replication requires an explicit policy for state, routing and startup costs, so it is deferred.
 
 ## 3. No implicit retry after ambiguous execution
 
@@ -32,4 +32,4 @@ This implementation pins the official TypeScript server and client packages to 2
 
 Persistent processes amortize process startup and application initialization. Every call still incurs serialization, IPC, scheduling and validation overhead. No performance claim follows simply from the architecture. Later measurements must separate cold start, warm latency, throughput, memory per worker and behavior under saturation, using realistic I/O and CPU workloads.
 
-The alpha now has a standalone HTTP host with admission authentication, input byte/concurrency limits, readiness and bounded shutdown. It does not have OAuth/tenant identity propagation, worker-output quotas, memory isolation or a process-tree supervisor. Those limitations must be addressed for the intended deployment environment before a production release.
+The alpha now has a standalone HTTP host with admission authentication, input byte/concurrency limits, readiness and bounded shutdown. It does not have OAuth/tenant identity propagation, hard memory isolation or a process-tree supervisor. Those limitations must be addressed for the intended deployment environment before a production release.

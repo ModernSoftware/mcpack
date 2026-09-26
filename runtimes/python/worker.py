@@ -1,6 +1,7 @@
 """MCPack's private persistent Python runner (Python 3.11+, standard library only)."""
 
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 import importlib.util
 import inspect
 import json
@@ -82,7 +83,6 @@ class Runner:
         self.worker = None
         self.context = None
         self.active = {}
-        self.request_id = None
 
     async def initialize(self, message):
         global _max_output_bytes
@@ -129,17 +129,24 @@ class Runner:
             self.active.pop(request_id, None)
 
     async def close(self):
-        for task, signal in self.active.values():
+        # Calls remove themselves in finally. Snapshot before awaiting any task.
+        active = list(self.active.values())
+        for task, signal in active:
             signal.abort()
-        for task, _ in self.active.values():
-            await task
+        await asyncio.gather(*(task for task, _ in active))
         if self.worker and "close" in self.worker:
             await invoke(self.worker["close"])
         send({"type": "closed"})
 
     async def run(self):
+        # Blocking sync handlers use asyncio's default executor. Keep command
+        # reads independent so a full handler pool cannot starve control traffic.
+        with ThreadPoolExecutor(max_workers=1, thread_name_prefix="mcpack-reader") as reader:
+            await self.read_commands(reader)
+
+    async def read_commands(self, reader):
         while True:
-            line = await asyncio.to_thread(_protocol_in.readline)
+            line = await asyncio.get_running_loop().run_in_executor(reader, _protocol_in.readline)
             if not line:
                 await self.close()
                 return

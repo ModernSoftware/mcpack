@@ -4,7 +4,7 @@ import { parentMessage, toolResult, resourceResult, promptResult } from './wire.
 
 let worker: NativeWorker | undefined;
 let context: WorkerContext;
-let active = new Map<string, { id: string; controller: AbortController; task: Promise<void> }>();
+const active = new Map<string, { controller: AbortController; task: Promise<void> }>();
 let closing = false;
 let maxOutputBytes = 1024 * 1024;
 
@@ -29,7 +29,7 @@ async function close(): Promise<void> {
 
   closing = true;
   for (const call of active.values()) call.controller.abort();
-  await Promise.all(Array.from(active.values()).map(call => call.task));
+  await Promise.all(Array.from(active.values()).map((call) => call.task));
   await worker?.close?.();
   send({ type: 'closed' });
   process.disconnect?.();
@@ -135,7 +135,7 @@ process.on('message', async (raw) => {
         }
       });
 
-      active.set(message.id, { id: message.id, controller, task });
+      active.set(message.id, { controller, task });
     } else if (message.type === 'cancel') {
       const activeCall = active.get(message.id);
       if (activeCall) activeCall.controller.abort();

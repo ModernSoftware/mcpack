@@ -30,7 +30,11 @@ Names are unique within each capability category. Resource URIs and argument nam
 | `shutdownTimeoutMs`           | `3000`; 1–30000                                                                                        |
 | `maxOutputBytes`              | `1048576`; 1024–67108864 bytes per serialized worker response envelope                                 |
 | `maxDiagnosticBytesPerSecond` | `65536`; 0–1048576 UTF-8 bytes forwarded per worker per fixed one-second window; 0 mutes diagnostics   |
-| `maxQueue`                    | `32`; 0–1000 pending requests, excluding the active request                                            |
+| `maxQueue`                    | `32`; 0–1000 waiting requests, excluding active calls                                                  |
+
+`maxConcurrent` defaults to `1` and accepts integers from 1 to 1000. It bounds active
+calls across all tools, resources and prompts assigned to a worker. `maxQueue: 0`
+still permits calls while execution slots are free; it disables waiting.
 
 A worker runs with project root as cwd. Node uses the host’s Node executable without inherited CLI flags. Python uses the optional `executable` field (Python workers only), defaulting to `python` on Windows and `python3` elsewhere. An executable containing a path separator is resolved relative to the project; a bare name is resolved through PATH. It is never evaluated by a shell. Basic PATH/Path, SystemRoot/SYSTEMROOT, WINDIR, TEMP and TMP values are forwarded when present. Other values require opt-in. MCPack does not load `.env` files or expand `${VARIABLE}` strings. Factory code may use its own configuration library.
 
@@ -61,12 +65,12 @@ Native handler context does not expose HTTP headers, authenticated identity, cli
 1. Load and validate the manifest and schemas without executing handlers.
 2. Start all declared workers; import modules, run factories, and verify bindings.
 3. Expose the runtime after every worker reports ready. Any startup failure closes all workers.
-4. Route each request to its named worker. Each worker executes sequentially; different workers are independent.
+4. Route each request to its named worker. Each worker executes sequentially by default; opt-in `maxConcurrent` allows overlapping calls. Different workers are independent.
 5. Close the runtime to reject pending callers and request worker cleanup. Wait for exit, then force termination at the shutdown deadline.
 
 `start()` and `close()` are idempotent at the runtime level. A closed runtime cannot restart. Calls before successful start are rejected. A worker cannot be restarted individually in this alpha.
 
-Queued cancellation removes only that request. Active cancellation/deadline sends an abort notification and retires the process; signal delivery and cleanup are best effort before termination. The active caller gets its original cancellation/deadline error; queued callers get WORKER_UNAVAILABLE. The system never retries an operation automatically. A cancelled or timed-out database write may already have committed; applications own idempotency and reconciliation.
+Queued cancellation removes only that request. Active cancellation/deadline sends an abort notification and retires the process; signal delivery and cleanup are best effort before termination. The active caller gets its original cancellation/deadline error; all other active and queued callers get WORKER_UNAVAILABLE. With concurrency enabled, collateral active calls may already have produced external side effects. The system never retries an operation automatically. A cancelled or timed-out database write may already have committed; applications own idempotency and reconciliation.
 
 Factory-owned state is shared by calls assigned to that worker, including different MCP clients if a future host shares the runtime. It is not per-user or durable storage.
 
@@ -101,7 +105,7 @@ Python uses UTF-8 newline-delimited JSON over its private stdin/stdout pipes wit
 
 Python factory conventions, interpreter selection, and result restrictions are documented in [Python native workers](python.md).
 
-`MCPackRuntime.health()` returns runtime state, aggregate readiness, and each worker’s state, active flag, and queued count, plus `diagnostics.forwardedBytes` and `diagnostics.droppedBytes` cumulative counters. The HTTP host uses it for readiness. `createMcpServer(runtime, { signal })` optionally combines a transport request signal with SDK call cancellation; existing single-argument callers remain supported.
+`MCPackRuntime.health()` returns runtime state, aggregate readiness, and each worker’s state, boolean active flag, numeric activeCount, and queued count, plus `diagnostics.forwardedBytes` and `diagnostics.droppedBytes` cumulative counters. The HTTP host uses it for readiness. `createMcpServer(runtime, { signal })` optionally combines a transport request signal with SDK call cancellation; existing single-argument callers remain supported.
 
 ## Output limits and compatibility
 
@@ -143,3 +147,30 @@ per window must configure budgets or reduce/paginate their output. Older package
 reject the new fields; pin and upgrade MCPack before adding them. Treat unknown future
 infrastructure error codes as failures rather than assuming an exhaustive fixed list.
 Do not depend on private worker transport layouts across package versions.
+
+## Opt-in concurrency
+
+Set `maxConcurrent` on a worker, for example `"maxConcurrent": 4`, to overlap I/O
+operations. Existing manifests retain sequential execution. Waiting calls are
+admitted in FIFO order; completion order is not guaranteed. Deadlines still include
+queue wait. Health retains `active: boolean` and adds `activeCount: number`.
+
+The factory is initialized once. Every call shares its objects and connections;
+handler authors must ensure these are safe for concurrent use. Python async handlers
+share an event loop and synchronous handlers use the default thread executor. A
+separate reader thread keeps protocol input independent of that executor. Executor
+capacity may be lower than `maxConcurrent`; activeCount counts dispatched calls,
+including calls awaiting a thread. Blocking Node handlers still block their worker's
+event loop. This setting does not create processes or guarantee CPU parallelism.
+
+A normal handler error or invalid/oversized response fails only that call. An active
+cancellation/deadline, crash, or protocol violation retires the whole worker and fails
+its other active and queued calls. Cancellation delivery is best effort; no operation
+is automatically retried and external effects are not rolled back. Separate named
+workers provide process-level fault isolation. Shutdown stops admission, signals and
+waits for the active calls, then invokes factory cleanup; the existing shutdown bound
+still forces termination if calls or cleanup do not finish.
+
+Choose concurrency based on DB connection pools, downstream rate limits and memory.
+The output limit remains per response, not an aggregate memory quota. Upgrade MCPack
+before adding the new manifest field: older versions reject unknown fields.
