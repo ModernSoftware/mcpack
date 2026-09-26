@@ -34,6 +34,7 @@ export const parentMessage = z.discriminatedUnion('type', [
     projectRoot: z.string(),
     module: z.string(),
     exportName: z.string(),
+    maxOutputBytes: z.number().int().min(1024),
     config: z.record(z.string(), z.json()),
     bindings: z.array(
       z.object({ kind: z.enum(['tools', 'resources', 'prompts']), handler: z.string() }),
@@ -58,7 +59,7 @@ export const childMessage = z.discriminatedUnion('type', [
     v: z.literal(1),
     type: z.literal('error'),
     id: z.string().optional(),
-    code: z.enum(['STARTUP_FAILED', 'HANDLER_FAILED', 'INVALID_RESULT']),
+    code: z.enum(['STARTUP_FAILED', 'HANDLER_FAILED', 'INVALID_RESULT', 'OUTPUT_LIMIT_EXCEEDED']),
     message: z.string(),
   }),
   z.object({ v: z.literal(1), type: z.literal('closed') }),

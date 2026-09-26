@@ -21,6 +21,18 @@ const workerFields = {
   startupTimeoutMs: z.number().int().min(1).max(300_000).default(10_000),
   timeoutMs: z.number().int().min(1).max(300_000).default(30_000),
   shutdownTimeoutMs: z.number().int().min(1).max(30_000).default(3_000),
+  maxOutputBytes: z
+    .number()
+    .int()
+    .min(1024)
+    .max(64 * 1024 * 1024)
+    .default(1024 * 1024),
+  maxDiagnosticBytesPerSecond: z
+    .number()
+    .int()
+    .min(0)
+    .max(1024 * 1024)
+    .default(64 * 1024),
   maxQueue: z.number().int().min(0).max(1000).default(32),
 };
 

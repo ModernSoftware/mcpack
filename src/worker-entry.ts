@@ -6,9 +6,22 @@ let worker: NativeWorker | undefined;
 let context: WorkerContext;
 let active: { id: string; controller: AbortController; task: Promise<void> } | undefined;
 let closing = false;
+let maxOutputBytes = 1024 * 1024;
 
 function send(message: object): void {
-  if (process.connected) process.send?.({ v: 1, ...message });
+  if (!process.connected) return;
+  const frame = { v: 1, ...message };
+  if (Buffer.byteLength(JSON.stringify(frame), 'utf8') > maxOutputBytes) {
+    process.send?.({
+      v: 1,
+      type: 'error',
+      id: (message as { id?: string }).id,
+      code: 'OUTPUT_LIMIT_EXCEEDED',
+      message: 'Worker response exceeded maxOutputBytes.',
+    });
+    return;
+  }
+  process.send?.(frame);
 }
 
 async function close(): Promise<void> {
@@ -29,6 +42,7 @@ process.on('message', async (raw) => {
     if (message.type === 'init') {
       if (worker) throw new Error('Worker already initialized');
 
+      maxOutputBytes = message.maxOutputBytes;
       context = {
         workerId: message.workerId,
         projectRoot: message.projectRoot,

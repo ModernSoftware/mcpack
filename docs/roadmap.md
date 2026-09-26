@@ -22,7 +22,7 @@ Define Forge's source interface for discovery, execution, refresh, health and di
 
 ## Current increment — HTTP and release foundation
 
-Add stateless Streamable HTTP using the same native runtime, service-token/custom admission authentication, request limits, health/readiness and shutdown handling. Add a reproducible benchmark and release-candidate/npm-alpha workflows. Identity propagation, OAuth, worker recovery, output/memory quotas and extended soak measurements remain follow-up work. This is an alpha release foundation, not a production-readiness claim.
+Add stateless Streamable HTTP using the same native runtime, service-token/custom admission authentication, request limits, health/readiness and shutdown handling. Add a reproducible benchmark and release-candidate/npm-alpha workflows. Identity propagation, OAuth, worker recovery, hard process-memory quotas and extended soak measurements remain follow-up work. Output budgets are covered by the hardening increment below. This is an alpha release foundation, not a production-readiness claim.
 
 ## Increment 5 — Additional runtimes and deployable artifacts
 
@@ -31,3 +31,21 @@ Python worker transport and dependency conventions are covered by the current in
 ## Increment 6 — Evidence and public reference project
 
 Benchmark cold/warm latency, saturation, memory, worker death and realistic DB/API workloads. Expand the original incident/evidence benchmark across native MCPack, FastMCP and official SDK sources in Forge. Document the actual edit/test/deploy workflow and its limitations before writing the Medium article.
+
+## Hardening toward 0.9.0 and AWS validation
+
+The next increment adds finite worker response budgets, bounded Python frame parsing,
+diagnostic delivery quotas/counters, and documented failure/compatibility semantics.
+Node IPC deserialization and application allocation remain outside hard memory limits.
+
+Follow with deliberate worker recovery policy, realistic DB/API load and fault tests,
+process-tree memory measurement, authentication/TLS/proxy deployment validation, and
+stable manifest/error/health interfaces. Forge continues consuming supported public
+interfaces; external sources and bridges remain Forge concerns.
+
+Track the AWS support-agent experiment in [issue #14](https://github.com/ModernSoftware/mcpack/issues/14):
+a small Terraform project, database-backed tools, scoped S3 access, and the same native
+project usable from Forge. Validate a candidate before declaring 0.9.0, then pin the
+example to the published 0.9.0 package. Evidence must include failure/recovery and sustained
+operation, not just a successful deployment. Infrastructure selection, Terraform planning,
+and resource creation are a later task; this increment does not provision AWS resources.
