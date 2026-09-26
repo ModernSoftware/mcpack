@@ -1,9 +1,14 @@
 name: Publish npm alpha
 on:
+  push:
+    tags: ['v*-alpha.*']
   workflow_dispatch:
 permissions:
   contents: read
   id-token: write
+concurrency:
+  group: npm-alpha-publication
+  cancel-in-progress: false
 jobs:
   publish:
     runs-on: ubuntu-latest
