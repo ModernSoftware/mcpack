@@ -1,4 +1,4 @@
-name: Publish npm alpha
+name: Stage npm alpha
 on:
   push:
     tags: ['v*-alpha.*']
@@ -21,6 +21,8 @@ jobs:
         with:
           node-version: '24'
           registry-url: https://registry.npmjs.org
+      - name: Install staging-capable npm
+        run: npm install --global npm@11.15.0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
@@ -29,5 +31,16 @@ jobs:
       - run: npm test
       - run: npm run test:package
       - run: npm run release:check -- --publish
-      - name: Publish alpha using npm trusted publishing
-        run: npm publish --tag alpha
+      - name: Stage alpha using npm trusted publishing
+        run: npm stage publish --tag alpha
+      - name: Explain maintainer approval
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          ## npm candidate staged; approval required
+          This workflow has not made the package public. Open npm's **Staged Packages**,
+          verify the version and artifact, then approve with 2FA.
+          Alternatively, use `npm stage list @modern-software/mcpack`,
+          `npm stage view <stage-id>`, and `npm stage approve <stage-id>` on your machine.
+          If a retry reports that the version exists, inspect staged and published versions
+          before retrying. Do not approve a different artifact merely to unblock CI.
+          EOF
