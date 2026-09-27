@@ -1,0 +1,109 @@
+x-image: &image
+  image: mcpack:support-desk
+  build:
+    context: ../..
+    target: support-desk
+x-environment: &environment
+  PGHOST: db
+  PGDATABASE: supportdesk
+  PGUSER: desk_app
+  PGPASSWORD: local-app-only
+  DB_SSL: 'false'
+  AWS_REGION: us-east-1
+  AWS_ACCESS_KEY_ID: local-test
+  AWS_SECRET_ACCESS_KEY: local-test
+  S3_ENDPOINT: http://s3:5000
+  DOCUMENT_BUCKET: support-desk-local
+  REFUND_API_URL: http://refunds:3001
+  REFUND_API_TOKEN: local-refund-only
+  MCPACK_HTTP_TOKEN: local-mcp-only
+services:
+  db:
+    image: postgres:16-bookworm@sha256:efedf3595f1d6f415c08568ba171029bf54052e754cc9f030e3f2412b21f3d67
+    environment:
+      POSTGRES_DB: supportdesk
+      POSTGRES_PASSWORD: local-admin-only
+    volumes: [database:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U postgres -d supportdesk']
+      interval: 2s
+      timeout: 2s
+      retries: 30
+  s3:
+    image: motoserver/moto@sha256:91fd602a21f49cf9eb82fdf474015a3c131d40104c8297ea6a2ca920708ae32c
+    environment:
+      MOTO_PORT: '5000'
+    healthcheck:
+      test:
+        [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:5000/')"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+  seed:
+    <<: *image
+    profiles: [setup]
+    entrypoint: [node, /project/seed.mjs]
+    environment:
+      <<: *environment
+      PGUSER: postgres
+      PGPASSWORD: local-admin-only
+      APP_DB_PASSWORD: local-app-only
+      REFUND_DB_PASSWORD: local-refund-db-only
+    depends_on:
+      db: { condition: service_healthy }
+      s3: { condition: service_healthy }
+  refunds:
+    <<: *image
+    entrypoint: [node, /project/refund-api.mjs]
+    environment:
+      PGHOST: db
+      PGDATABASE: supportdesk
+      PGUSER: refund_app
+      PGPASSWORD: local-refund-db-only
+      REFUND_API_TOKEN: local-refund-only
+      SIMULATOR_FAULTS_ENABLED: 'true'
+    ports: ['127.0.0.1:3001:3001']
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    cpus: 1
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://localhost:3001/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+  mcp:
+    <<: *image
+    entrypoint: [node, /project/serve.mjs]
+    environment: *environment
+    ports: ['127.0.0.1:3000:3000']
+    depends_on:
+      refunds: { condition: service_healthy }
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 512m
+    cpus: 1
+    stop_grace_period: 20s
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://localhost:3000/readyz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+volumes:
+  database:

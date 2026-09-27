@@ -1,0 +1,294 @@
+{
+  "schemaVersion": 1,
+  "name": "support-desk",
+  "version": "0.1.0",
+  "workers": {
+    "orders": {
+      "runtime": "node",
+      "module": "./orders.mjs",
+      "inheritEnv": [
+        "PGHOST",
+        "PGPORT",
+        "PGDATABASE",
+        "PGUSER",
+        "PGPASSWORD",
+        "DB_SSL",
+        "PGSSLROOTCERT"
+      ],
+      "maxConcurrent": 4,
+      "maxQueue": 16,
+      "timeoutMs": 15000,
+      "recovery": {
+        "maxRestarts": 3
+      }
+    },
+    "documents": {
+      "runtime": "python",
+      "module": "./documents.py",
+      "executable": "/opt/venv/bin/python",
+      "inheritEnv": [
+        "PGHOST",
+        "PGPORT",
+        "PGDATABASE",
+        "PGUSER",
+        "PGPASSWORD",
+        "DB_SSL",
+        "PGSSLROOTCERT",
+        "DOCUMENT_BUCKET",
+        "S3_ENDPOINT",
+        "AWS_REGION",
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_SESSION_TOKEN",
+        "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI",
+        "AWS_CONTAINER_CREDENTIALS_FULL_URI"
+      ],
+      "maxConcurrent": 4,
+      "maxQueue": 16,
+      "timeoutMs": 15000,
+      "recovery": {
+        "maxRestarts": 3
+      }
+    },
+    "refunds": {
+      "runtime": "node",
+      "module": "./refund-client.mjs",
+      "inheritEnv": ["REFUND_API_URL", "REFUND_API_TOKEN"],
+      "maxConcurrent": 4,
+      "maxQueue": 16,
+      "timeoutMs": 15000,
+      "recovery": {
+        "maxRestarts": 3
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "find_orders",
+      "worker": "orders",
+      "handler": "find_orders",
+      "description": "find orders",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "customer_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "after": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          }
+        },
+        "required": ["customer_id"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_order_details",
+      "worker": "orders",
+      "handler": "get_order_details",
+      "description": "get order details",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "required": ["order_id"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_customer_summary",
+      "worker": "orders",
+      "handler": "get_customer_summary",
+      "description": "get customer summary",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "customer_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "required": ["customer_id"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "open_claim",
+      "worker": "orders",
+      "handler": "open_claim",
+      "description": "open claim",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "reason": {
+            "type": "string",
+            "enum": ["damaged", "missing", "changed_mind"]
+          },
+          "request_key": {
+            "type": "string",
+            "pattern": "^[-a-zA-Z0-9_:]{1,100}$"
+          }
+        },
+        "required": ["order_id", "reason", "request_key"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "find_documents",
+      "worker": "documents",
+      "handler": "find_documents",
+      "description": "find documents",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "required": ["order_id"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "read_document",
+      "worker": "documents",
+      "handler": "read_document",
+      "description": "read document",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "required": ["document_id"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "evaluate_refund_eligibility",
+      "worker": "documents",
+      "handler": "evaluate_refund_eligibility",
+      "description": "evaluate refund eligibility",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "reason": {
+            "type": "string",
+            "enum": ["damaged", "missing", "changed_mind"]
+          }
+        },
+        "required": ["order_id", "reason"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "submit_refund",
+      "worker": "refunds",
+      "handler": "submit_refund",
+      "description": "submit refund",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "claim_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "idempotency_key": {
+            "type": "string",
+            "pattern": "^[-a-zA-Z0-9_:]{1,100}$"
+          },
+          "confirmed": {
+            "type": "boolean"
+          }
+        },
+        "required": ["claim_id", "idempotency_key", "confirmed"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_refund_status",
+      "worker": "refunds",
+      "handler": "get_refund_status",
+      "description": "get refund status",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "idempotency_key": {
+            "type": "string",
+            "pattern": "^[-a-zA-Z0-9_:]{1,100}$"
+          }
+        },
+        "required": ["idempotency_key"],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "resources": [
+    {
+      "name": "policy",
+      "uri": "support://policy",
+      "worker": "documents",
+      "handler": "policy"
+    },
+    {
+      "name": "glossary",
+      "uri": "support://glossary",
+      "worker": "documents",
+      "handler": "glossary"
+    }
+  ],
+  "prompts": [
+    {
+      "name": "investigate_order",
+      "worker": "documents",
+      "handler": "investigate",
+      "arguments": [
+        {
+          "name": "order_id",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "resolution_summary",
+      "worker": "documents",
+      "handler": "summarize",
+      "arguments": [
+        {
+          "name": "evidence",
+          "required": true
+        }
+      ]
+    }
+  ]
+}

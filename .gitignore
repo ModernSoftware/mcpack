@@ -7,3 +7,8 @@ __pycache__/
 .venv/
 .benchmark/
 .release/
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfplan

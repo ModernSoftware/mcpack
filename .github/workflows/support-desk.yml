@@ -1,0 +1,45 @@
+name: Support Desk PoC
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  local:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: bash examples/support-desk/scripts/local.sh
+      - run: node examples/support-desk/test/integration.mjs
+        env:
+          REFUND_API_URL: http://localhost:3001
+          REFUND_API_TOKEN: local-refund-only
+      - name: Logs
+        if: failure()
+        run: docker compose -f examples/support-desk/compose.yaml logs --no-color --tail=150
+      - name: Clean up
+        if: always()
+        run: docker compose -f examples/support-desk/compose.yaml down -v --remove-orphans
+  terraform:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.5
+      - run: terraform fmt -check -recursive examples/support-desk/infra
+      - name: Validate without AWS credentials
+        run: |
+          for directory in bootstrap terraform; do
+            terraform -chdir=examples/support-desk/infra/$directory init -backend=false -input=false -lockfile=readonly
+            terraform -chdir=examples/support-desk/infra/$directory validate
+          done
