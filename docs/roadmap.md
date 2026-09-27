@@ -22,7 +22,7 @@ Define Forge's source interface for discovery, execution, refresh, health and di
 
 ## Current increment — HTTP and release foundation
 
-Add stateless Streamable HTTP using the same native runtime, service-token/custom admission authentication, request limits, health/readiness and shutdown handling. Add a reproducible benchmark and release-candidate/npm-alpha workflows. Identity propagation, OAuth, worker recovery, hard process-memory quotas and extended soak measurements remain follow-up work. Output budgets are covered by the hardening increment below. This is an alpha release foundation, not a production-readiness claim.
+Add stateless Streamable HTTP using the same native runtime, service-token/custom admission authentication, request limits, health/readiness and shutdown handling. Add a reproducible benchmark and release-candidate/npm-alpha workflows. Identity propagation, OAuth, hard process-memory quotas and extended soak measurements remain follow-up work. Opt-in worker recovery is covered by deployment readiness below. Output budgets are covered by the hardening increment below. This is an alpha release foundation, not a production-readiness claim.
 
 ## Increment 5 — Additional runtimes and deployable artifacts
 
@@ -53,4 +53,12 @@ and resource creation are a later task; this increment does not provision AWS re
 Opt-in Node/Python concurrency retains sequential defaults, bounds active and queued
 calls separately, and tests overlap, out-of-order results, shared capability capacity,
 Python thread-pool saturation, cancellation, worker death and concurrent cleanup.
-Worker recovery and automatic retry remain outside this increment.
+Worker recovery is delivered in the subsequent deployment-readiness increment; automatic operation retry remains out of scope.
+
+## Deployment readiness (issue #18)
+
+Opt-in supervisor recovery, bounded restart budgets/backoff, health/readiness,
+security regression tests and a non-root Node/Python reference image prepare a
+release candidate for issue #14. Initial startup remains fail-fast; calls are never
+replayed. The AWS experiment must still validate real authentication/TLS/proxy setup,
+DB/S3/API access, sustained load, memory and ambiguous-write behavior before 0.9.0.

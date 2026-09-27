@@ -64,7 +64,9 @@ failures use a tool result with `isError: True`.
 
 ## Scheduling and diagnostics
 
-One worker executes one handler at a time; separate named workers execute concurrently.
+One worker executes one handler at a time by default; opt-in maxConcurrent allows
+overlap. Separate named workers execute concurrently. Shared state must be safe for
+concurrent access when enabled, including threads for synchronous handlers.
 Synchronous callables run in an executor thread so the asyncio control loop can read
 shutdown/cancellation messages. Thread affinity is not guaranteed between synchronous
 factory, handler, and cleanup calls. Use async callables for resources requiring one
@@ -78,7 +80,10 @@ redirects normal Python `print()` to stderr before importing application code. U
 replace protocol streams, read stdin, or let child processes inherit stdout; those can
 corrupt or consume the private protocol. This is unrelated to the external MCP transport.
 
-There is no automatic retry, process restart, dependency management, descendant-process
-supervisor, memory limit, or protocol frame byte limit in this alpha. Queue limits are
-by count. Choose deployment limits before exposing untrusted traffic. Performance
-benchmarks and production deployment images are separate work.
+Opt-in [worker recovery](recovery.md) can replace failed processes without replaying calls.
+There is no automatic operation retry, dependency management, descendant-process
+supervisor or hard per-worker memory limit. Response frame byte limits and diagnostic
+quotas are described in the native contracts. Queues are bounded by count. A dedicated
+reader executor keeps input independent of the synchronous-handler executor. See
+[deployment guidance](deployment.md) for the Node/Python reference image and remaining
+AWS workload validation.

@@ -104,7 +104,8 @@ only while every worker is ready, otherwise 503. A failed worker makes readiness
 while unaffected workers can still execute. Probe responses contain only a status and
 require Host/Origin validation but no bearer token. Detailed state is available to an
 embedding host through `host.runtime.health()` (worker state, boolean active flag, numeric activeCount, queue length).
-A retired worker is not restarted automatically; restart the deployment deliberately.
+A retired worker restarts only when its optional recovery policy allows it. See
+[worker recovery](recovery.md) for budgets, health fields and no-replay semantics.
 
 With worker concurrency enabled, cancelling or timing out an executing HTTP call
 retires its worker and fails other calls already running in that process as well as

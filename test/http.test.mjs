@@ -278,3 +278,83 @@ test('HTTP incomplete request body is bounded by the request deadline', async (t
   });
   assert.equal(status, 504);
 });
+
+const toolRequest = {
+  method: 'POST',
+  headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' },
+  body: JSON.stringify({
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'tools/call',
+    params: { name: 'primary', arguments: {} },
+  }),
+};
+
+for (const decision of ['deny', 'throw', 'late']) {
+  test(`HTTP authorization ${decision} never invokes a handler or exposes private details`, async (t) => {
+    let allowLate;
+    const host = await fixture(t, {
+      requestTimeoutMs: 100,
+      authorize: () => {
+        if (decision === 'deny') return false;
+        if (decision === 'throw') throw new Error('PRIVATE_AUTH_SECRET');
+        return new Promise((resolve) => {
+          allowLate = resolve;
+        });
+      },
+    });
+    const response = await fetch(host.url, toolRequest);
+    assert.equal(response.status, { deny: 401, throw: 500, late: 504 }[decision]);
+    assert.equal((await response.text()).includes('PRIVATE_AUTH_SECRET'), false);
+    allowLate?.(true);
+    // A late authorization result must not resume dispatch after its deadline.
+    await new Promise((resolve) => setImmediate(resolve));
+    const result = await host.runtime.callTool('primary');
+    assert.equal(result.structuredContent.count, 1);
+    assert.equal(host.runtime.health().ready, true);
+  });
+}
+
+test('HTTP host/origin rejection precedes authorization and dispatch', async (t) => {
+  let authorizations = 0;
+  const host = await fixture(t, {
+    authorize: () => {
+      authorizations++;
+      return true;
+    },
+  });
+  const response = await fetch(host.url, {
+    ...toolRequest,
+    headers: { ...toolRequest.headers, origin: 'https://evil.example' },
+  });
+  assert.equal(response.status, 403);
+  assert.equal(authorizations, 0);
+  assert.equal((await host.runtime.callTool('primary')).structuredContent.count, 1);
+});
+
+test('HTTP bearer credentials stay outside worker environment without explicit forwarding', async (t) => {
+  const previous = process.env.MCPACK_TEST_HIDDEN;
+  process.env.MCPACK_TEST_HIDDEN = 'private-service-token';
+  t.after(() => {
+    if (previous === undefined) delete process.env.MCPACK_TEST_HIDDEN;
+    else process.env.MCPACK_TEST_HIDDEN = previous;
+  });
+  const host = await fixture(t, { authorize: bearerToken(process.env.MCPACK_TEST_HIDDEN) });
+  const client = await connect(t, host, 'auto', { authorization: 'Bearer private-service-token' });
+  const result = await client.callTool({ name: 'primary', arguments: { action: 'env' } });
+  assert.equal(JSON.parse(result.content[0].text).hidden, undefined);
+  await client.close();
+});
+
+test('HTTP readiness follows recovery while liveness and another worker stay available', async (t) => {
+  const host = await fixture(t, {}, { recovery: { baseDelayMs: 1500, maxDelayMs: 1500 } });
+  const client = await connect(t, host);
+  await assert.rejects(client.callTool({ name: 'primary', arguments: { action: 'crash' } }));
+  assert.equal((await fetch(new URL('/readyz', host.url))).status, 503);
+  assert.equal((await fetch(new URL('/healthz', host.url))).status, 200);
+  await client.callTool({ name: 'secondary' });
+  await waitFor(() => host.runtime.health().ready);
+  assert.equal((await fetch(new URL('/readyz', host.url))).status, 200);
+  await client.callTool({ name: 'primary' });
+  await client.close();
+});
