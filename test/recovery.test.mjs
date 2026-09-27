@@ -4,6 +4,23 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { recoveryFixture, waitFor, code } from './helpers/recovery.mjs';
 
 for (const kind of ['node', 'python']) {
+  test(`${kind}: invalid recovery policies fail manifest validation`, async (t) => {
+    for (const recovery of [
+      false,
+      null,
+      { maxRestarts: 0 },
+      { maxRestarts: 101 },
+      { baseDelayMs: 0 },
+      { baseDelayMs: 20, maxDelayMs: 10 },
+      { resetAfterMs: 0 },
+      { resetAfterMs: 86400001 },
+      { maxRestarts: 1.5 },
+      { unknown: true },
+    ]) {
+      await assert.rejects(recoveryFixture(t, kind, { recovery }), code('INVALID_MANIFEST'));
+    }
+  });
+
   test(`${kind}: recovery replaces a dead process, resets state and never replays side effects`, async (t) => {
     const f = await recoveryFixture(t, kind);
     await f.runtime.start();
