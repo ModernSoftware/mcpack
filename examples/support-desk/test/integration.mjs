@@ -42,6 +42,16 @@ try {
       .status,
     401,
   );
+  assert.equal(
+    (
+      await fetch(url, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, origin: 'https://untrusted.invalid' },
+        body: '{}',
+      })
+    ).status,
+    403,
+  );
   const order = await call('get_order_details', { order_id: 'ORD-10482' });
   assert.equal(order.order.total_cents, 1482);
   assert.equal(
@@ -97,6 +107,11 @@ try {
     ).isError,
     true,
   );
+  assert.equal(
+    (await client.callTool({ name: 'open_claim', arguments: { ...args, reason: 'missing' } }))
+      .isError,
+    true,
+  );
   const responses = await Promise.all(
     Array.from({ length: 4 }, () => call('submit_refund', refundArgs)),
   );
@@ -105,6 +120,15 @@ try {
     (await call('get_refund_status', { idempotency_key: refundArgs.idempotency_key })).refund
       .amount_cents,
     1482,
+  );
+  assert.equal(
+    (
+      await client.callTool({
+        name: 'submit_refund',
+        arguments: { ...refundArgs, idempotency_key: `different-${run}` },
+      })
+    ).isError,
+    true,
   );
   // Local-only fault interface; skip unless explicitly configured for an authorized simulator.
   if (process.env.REFUND_API_URL) {
