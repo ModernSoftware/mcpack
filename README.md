@@ -191,9 +191,9 @@ Forge’s native prototype launches the MCPack CLI over stdio, using the same ru
 
 ## Operating model
 
-- One child process per named worker; one active call per process. Separate workers run concurrently. Each process has its own factory state.
+- One child process per named worker; one active call per process by default. Opt in with worker `maxConcurrent` to overlap I/O calls (see [concurrency contracts](docs/contracts.md#opt-in-concurrency)). Separate workers run concurrently. Each process has its own factory state.
 - A bounded FIFO queue and deadline apply to every invocation. The deadline includes queue wait.
-- Active cancellation, timeout, or process failure retires that worker. Queued requests fail; other workers keep serving. There are no automatic retries or restarts. Recreate the runtime to recover a retired worker in this alpha.
+- Active cancellation, timeout, or process failure retires that worker. Other active and queued requests fail; other workers keep serving. There are no automatic retries or restarts. Recreate the runtime to recover a retired worker in this alpha.
 - Graceful shutdown invokes `close()` with a bounded wait, then kills processes that do not exit. Forced shutdown cannot guarantee application cleanup or rollback of external writes.
 - Worker responses default to a 1 MiB serialized envelope limit. Diagnostic delivery defaults to 64 KiB per worker per one-second window; dropped-byte counters are available in runtime health. See [limit semantics](docs/contracts.md#output-limits-and-compatibility).
 - Worker stdout/stderr are diagnostics, separated from MCP protocol stdout. Treat diagnostics as potentially sensitive application output.

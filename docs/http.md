@@ -103,5 +103,9 @@ worker memory quota in this alpha.
 only while every worker is ready, otherwise 503. A failed worker makes readiness fail,
 while unaffected workers can still execute. Probe responses contain only a status and
 require Host/Origin validation but no bearer token. Detailed state is available to an
-embedding host through `host.runtime.health()` (worker state, active flag, queue length).
+embedding host through `host.runtime.health()` (worker state, boolean active flag, numeric activeCount, queue length).
 A retired worker is not restarted automatically; restart the deployment deliberately.
+
+With worker concurrency enabled, cancelling or timing out an executing HTTP call
+retires its worker and fails other calls already running in that process as well as
+queued calls. Use separate named workers when process-level fault isolation is needed.

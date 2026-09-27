@@ -34,7 +34,7 @@ Benchmark cold/warm latency, saturation, memory, worker death and realistic DB/A
 
 ## Hardening toward 0.9.0 and AWS validation
 
-The next increment adds finite worker response budgets, bounded Python frame parsing,
+The output-hardening increment added finite worker response budgets, bounded Python frame parsing,
 diagnostic delivery quotas/counters, and documented failure/compatibility semantics.
 Node IPC deserialization and application allocation remain outside hard memory limits.
 
@@ -49,3 +49,8 @@ project usable from Forge. Validate a candidate before declaring 0.9.0, then pin
 example to the published 0.9.0 package. Evidence must include failure/recovery and sustained
 operation, not just a successful deployment. Infrastructure selection, Terraform planning,
 and resource creation are a later task; this increment does not provision AWS resources.
+
+Opt-in Node/Python concurrency retains sequential defaults, bounds active and queued
+calls separately, and tests overlap, out-of-order results, shared capability capacity,
+Python thread-pool saturation, cancellation, worker death and concurrent cleanup.
+Worker recovery and automatic retry remain outside this increment.
