@@ -1,9 +1,12 @@
 """Optional interactive Bedrock agent; deterministic tests do not import this."""
+
 import os
+import sys
 import threading
 import uuid
 
-from mcp.client.streamable_http import streamablehttp_client
+from contextlib import asynccontextmanager
+from mcp.client.streamable_http import streamable_http_client, create_mcp_http_client
 from strands import Agent, tool
 from strands.models import BedrockModel
 from strands.tools.mcp import MCPClient
@@ -12,9 +15,16 @@ from strands.tools.mcp import MCPClient
 def main():
     url = os.environ.get("MCP_URL", "http://localhost:3000/mcp")
     token = os.environ["MCPACK_HTTP_TOKEN"]
-    client = MCPClient(lambda: streamablehttp_client(
-        url, headers={"Authorization": f"Bearer {token}"}
-    ))
+
+    @asynccontextmanager
+    async def transport():
+        async with create_mcp_http_client(
+            headers={"Authorization": f"Bearer {token}"}
+        ) as http:
+            async with streamable_http_client(url, http_client=http) as streams:
+                yield streams
+
+    client = MCPClient(transport)
     approval_lock = threading.Lock()
 
     @tool
@@ -28,15 +38,32 @@ def main():
         # The model cannot supply the approval. Read it from the operator's terminal.
         with approval_lock:
             print(f"\nRefund request: claim={claim_id!r}, key={idempotency_key!r}")
-            if input("Type APPROVE to submit this simulated refund: ").strip() != "APPROVE":
+            if (
+                input("Type APPROVE to submit this simulated refund: ").strip()
+                != "APPROVE"
+            ):
                 return {"status": "denied_by_operator"}
-            return client.call_tool_sync(str(uuid.uuid4()), "submit_refund", {
-                "claim_id": claim_id, "idempotency_key": idempotency_key, "confirmed": True
-            })
+            return client.call_tool_sync(
+                str(uuid.uuid4()),
+                "submit_refund",
+                {
+                    "claim_id": claim_id,
+                    "idempotency_key": idempotency_key,
+                    "confirmed": True,
+                },
+            )
 
     with client:
         # Never expose the unguarded write tool alongside the approval wrapper.
         tools = [t for t in client.list_tools_sync() if t.tool_name != "submit_refund"]
+        if "--check" in sys.argv:
+            assert len(tools) == 8 and all(
+                t.tool_name != "submit_refund" for t in tools
+            )
+            print(
+                "PASS: Strands discovers tools; raw refund tool excluded; no model invoked"
+            )
+            return
         agent = Agent(
             model=BedrockModel(model_id=os.environ["BEDROCK_MODEL_ID"]),
             tools=[*tools, approve_refund],

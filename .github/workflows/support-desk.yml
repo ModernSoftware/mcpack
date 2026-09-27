@@ -22,6 +22,14 @@ jobs:
         env:
           REFUND_API_URL: http://localhost:3001
           REFUND_API_TOKEN: local-refund-only
+      - run: node examples/support-desk/test/load.mjs
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install --require-hashes -r examples/support-desk/agent/requirements.txt
+      - run: python examples/support-desk/agent/main.py --check
+        env:
+          MCPACK_HTTP_TOKEN: local-mcp-only
       - name: Logs
         if: failure()
         run: docker compose -f examples/support-desk/compose.yaml logs --no-color --tail=150

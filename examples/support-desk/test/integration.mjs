@@ -18,6 +18,30 @@ try {
     }),
   );
   assert.equal((await client.listTools()).tools.length, 9);
+  assert.equal((await client.listResources()).resources.length, 2);
+  assert.equal((await client.listPrompts()).prompts.length, 2);
+  assert.equal(
+    (await call('get_customer_summary', { customer_id: 'CUST-00482' })).customer.id,
+    'CUST-00482',
+  );
+  assert.match(
+    (await client.readResource({ uri: 'support://glossary' })).contents[0].text,
+    /processed/,
+  );
+  assert.match(
+    (
+      await client.getPrompt({
+        name: 'resolution_summary',
+        arguments: { evidence: 'test-evidence' },
+      })
+    ).messages[0].content.text,
+    /test-evidence/,
+  );
+  assert.equal(
+    (await fetch(url, { method: 'POST', headers: { authorization: 'Bearer invalid' }, body: '{}' }))
+      .status,
+    401,
+  );
   const order = await call('get_order_details', { order_id: 'ORD-10482' });
   assert.equal(order.order.total_cents, 1482);
   assert.equal(

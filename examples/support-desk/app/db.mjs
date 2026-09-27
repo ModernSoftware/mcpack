@@ -17,8 +17,9 @@ export function database() {
         : false,
   });
 }
-export const result = (value) => ({
-  content: [{ type: 'text', text: JSON.stringify(value) }],
-  structuredContent: value,
-});
+// PostgreSQL returns Date objects; the worker contract requires JSON values.
+export function result(value) {
+  const text = JSON.stringify(value);
+  return { content: [{ type: 'text', text }], structuredContent: JSON.parse(text) };
+}
 export const failure = (message) => ({ content: [{ type: 'text', text: message }], isError: true });
