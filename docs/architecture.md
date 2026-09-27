@@ -16,7 +16,7 @@ One active invocation per worker remains the default to preserve sequential shar
 
 ## 3. No implicit retry after ambiguous execution
 
-A failed process or timeout does not prove an external side effect failed. The alpha retires affected workers and returns explicit errors. Automatic retry/restart requires a separate recovery contract and observability first.
+A failed process or timeout does not prove an external side effect failed. The alpha retires affected workers and returns explicit errors. Opt-in process recovery has a separate supervisor and documented backoff/health contract. It never retries operations; each process generation owns its own callbacks and callers.
 
 ## 4. One core for Forge and standalone serving
 

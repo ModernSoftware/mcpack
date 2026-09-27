@@ -35,6 +35,18 @@ const workerFields = {
     .default(64 * 1024),
   maxQueue: z.number().int().min(0).max(1000).default(32),
   maxConcurrent: z.number().int().min(1).max(1000).default(1),
+  recovery: z
+    .object({
+      maxRestarts: z.number().int().min(1).max(100).default(3),
+      baseDelayMs: z.number().int().min(1).max(300_000).default(250),
+      maxDelayMs: z.number().int().min(1).max(300_000).default(10_000),
+      resetAfterMs: z.number().int().min(1).max(86_400_000).default(60_000),
+    })
+    .strict()
+    .refine((policy) => policy.maxDelayMs >= policy.baseDelayMs, {
+      message: 'recovery.maxDelayMs must be at least baseDelayMs',
+    })
+    .optional(),
 };
 
 const WorkerSchema = z.discriminatedUnion('runtime', [

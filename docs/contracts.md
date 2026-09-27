@@ -70,7 +70,7 @@ Native handler context does not expose HTTP headers, authenticated identity, cli
 
 `start()` and `close()` are idempotent at the runtime level. A closed runtime cannot restart. Calls before successful start are rejected. A worker cannot be restarted individually in this alpha.
 
-Queued cancellation removes only that request. Active cancellation/deadline sends an abort notification and retires the process; signal delivery and cleanup are best effort before termination. The active caller gets its original cancellation/deadline error; all other active and queued callers get WORKER_UNAVAILABLE. With concurrency enabled, collateral active calls may already have produced external side effects. The system never retries an operation automatically. A cancelled or timed-out database write may already have committed; applications own idempotency and reconciliation.
+Queued cancellation removes only that request. Active cancellation/deadline sends an abort notification and retires the process; signal delivery and cleanup are best effort before termination. The active caller gets its original cancellation/deadline error; all other active and queued callers get WORKER_UNAVAILABLE. With concurrency enabled, collateral active calls may already have produced external side effects. The system never retries an operation automatically. Optional process recovery is defined in [worker recovery](recovery.md). A cancelled or timed-out database write may already have committed; applications own idempotency and reconciliation.
 
 Factory-owned state is shared by calls assigned to that worker, including different MCP clients if a future host shares the runtime. It is not per-user or durable storage.
 
@@ -174,3 +174,10 @@ still forces termination if calls or cleanup do not finish.
 Choose concurrency based on DB connection pools, downstream rate limits and memory.
 The output limit remains per response, not an aggregate memory quota. Upgrade MCPack
 before adding the new manifest field: older versions reject unknown fields.
+
+## Recovery configuration
+
+Worker `recovery` is optional and disabled when omitted. An empty object enables the
+bounded default policy. See [recovery contracts](recovery.md) for field bounds,
+backoff/reset semantics, generation and restart health fields, and call behavior.
+Initial startup remains fail-fast. Recovery reruns factories but never replays calls.

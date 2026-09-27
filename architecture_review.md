@@ -28,10 +28,11 @@ Active cancellation/deadlines still retire the entire worker. Other executing ca
 can already have produced side effects. This is documented and tested; operations
 are not replayed. Named workers remain the process-level fault boundary.
 
-## Recovery: separate future increment
+## Recovery: subsequent deployment-readiness increment
 
-Recovery must distinguish respawning a process from replaying an operation. Design
-bounded restart attempts, backoff, readiness, observability and factory state reset.
+Recovery distinguishes respawning a process from replaying an operation. The
+subsequent issue #18 implements bounded restart attempts, backoff, readiness,
+health reporting and factory state reset; see docs/recovery.md.
 Retain explicit errors for ambiguous in-flight operations and avoid automatic replay
 of writes. Specify queued-call policy before implementing it.
 
@@ -58,7 +59,7 @@ overlap without inferring it from matching process IDs or short elapsed times.
 
 ## Deployment evidence before release
 
-1. Complete recovery policy and failure tests in a separate issue/PR.
+1. Review the recovery policy and failure tests delivered by issue #18.
 2. Validate DB/API pool limits, downstream throttling, memory and sustained load.
 3. Validate authentication, TLS, proxy behavior and shutdown in the intended AWS setup.
 4. Provide images containing only the supported runtimes required by the workload.

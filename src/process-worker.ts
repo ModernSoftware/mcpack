@@ -38,6 +38,7 @@ export class ProcessWorker {
     private definition: WorkerDefinition,
     private project: LoadedProject,
     private diagnostic: Diagnostic,
+    private onFailure: (error: MCPackError) => void = () => {},
   ) {}
 
   async start(): Promise<void> {
@@ -234,6 +235,7 @@ export class ProcessWorker {
       // Never reuse a worker whose timed-out handler could still mutate state.
       this.fail(
         new MCPackError('WORKER_UNAVAILABLE', 'Worker stopped after cancellation or deadline'),
+        error,
       );
     } else {
       const index = this.queue.findIndex((item) => item.id === id);
@@ -268,7 +270,7 @@ export class ProcessWorker {
     this.queue = [];
   }
 
-  private fail(error: MCPackError): void {
+  private fail(error: MCPackError, cause: MCPackError = error): void {
     if (this.state === 'failed' || this.state === 'closed') return;
 
     this.state = 'failed';
@@ -276,6 +278,7 @@ export class ProcessWorker {
     this.child?.kill('SIGTERM');
     this.killTimer = setTimeout(() => this.child?.kill('SIGKILL'), 250);
     this.killTimer.unref();
+    this.onFailure(cause);
   }
 
   snapshot() {

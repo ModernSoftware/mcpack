@@ -193,7 +193,7 @@ Forge’s native prototype launches the MCPack CLI over stdio, using the same ru
 
 - One child process per named worker; one active call per process by default. Opt in with worker `maxConcurrent` to overlap I/O calls (see [concurrency contracts](docs/contracts.md#opt-in-concurrency)). Separate workers run concurrently. Each process has its own factory state.
 - A bounded FIFO queue and deadline apply to every invocation. The deadline includes queue wait.
-- Active cancellation, timeout, or process failure retires that worker. Other active and queued requests fail; other workers keep serving. There are no automatic retries or restarts. Recreate the runtime to recover a retired worker in this alpha.
+- Active cancellation, timeout, or process failure retires that worker. Other active and queued requests fail; other workers keep serving. There are no automatic operation retries. Opt-in [worker recovery](docs/recovery.md) restarts failed processes with bounded backoff; otherwise recreate the runtime to recover.
 - Graceful shutdown invokes `close()` with a bounded wait, then kills processes that do not exit. Forced shutdown cannot guarantee application cleanup or rollback of external writes.
 - Worker responses default to a 1 MiB serialized envelope limit. Diagnostic delivery defaults to 64 KiB per worker per one-second window; dropped-byte counters are available in runtime health. See [limit semantics](docs/contracts.md#output-limits-and-compatibility).
 - Worker stdout/stderr are diagnostics, separated from MCP protocol stdout. Treat diagnostics as potentially sensitive application output.
@@ -203,7 +203,7 @@ Forge’s native prototype launches the MCPack CLI over stdio, using the same ru
 
 Implemented: manifest validation, Node/Python factories, persistent named workers, bounded queues, cancellation/deadlines, graceful shutdown, text tool/resource/prompt results, static discovery, stdio/Streamable HTTP serving, request admission limits, bearer authentication or a custom authorization hook, health probes, a benchmark harness, and an embedding API.
 
-Not implemented: OAuth/tenant identity propagation, .NET workers, replicated worker pools, automatic recovery, hot reload, resource templates/subscriptions, binary or rich media results, output schemas, tasks, sampling, and elicitation. No latency or production-readiness claim is made yet.
+Not implemented: OAuth/tenant identity propagation, .NET workers, replicated worker pools, hot reload, resource templates/subscriptions, binary or rich media results, output schemas, tasks, sampling, and elicitation. No latency or production-readiness claim is made yet.
 
 Handler code is **trusted executable code**. A child process and a project-relative entrypoint are not a sandbox. Modules can import other files, access the network and filesystem, spawn children, and cause side effects. Use deployment isolation for untrusted code. Killing a worker does not manage arbitrary descendants it spawned.
 
@@ -238,3 +238,10 @@ Copyright 2026 Modern Software and MCPack contributors. Licensed under the
 See [contracts](docs/contracts.md), [architecture decisions](docs/architecture.md), and [implementation roadmap](docs/roadmap.md).
 
 See [HTTP operation and authentication](docs/http.md), [performance measurements](docs/performance.md), and [npm release preparation](docs/releasing.md).
+
+## Deployment candidate
+
+See [worker recovery](docs/recovery.md) for opt-in restart policies and
+[deployment guidance](docs/deployment.md) for the non-root Node/Python Docker
+reference, service-identity security scope, probes, resource limits and AWS validation
+gates. This increment does not publish an image or claim production certification.
