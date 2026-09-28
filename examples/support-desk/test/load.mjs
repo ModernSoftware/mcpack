@@ -17,7 +17,8 @@ if (
 const client = new Client({ name: 'support-desk-load', version: '1' });
 const durations = [];
 
-let next = 0, failures = 0;
+let next = 0,
+  failures = 0;
 
 try {
   await client.connect(
@@ -68,8 +69,7 @@ try {
       2,
     ),
   );
-  if (failures)
-    process.exitCode = 1;
+  if (failures) process.exitCode = 1;
 } finally {
   await client.close();
 }

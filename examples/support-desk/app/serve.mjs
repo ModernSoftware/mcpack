@@ -1,14 +1,12 @@
 import { fileURLToPath } from 'node:url';
 
-const {
-  serveHttp,
-  bearerToken
-} = await import(process.env.MCPACK_ENTRY ?? '/opt/mcpack/dist/index.js');
+const { serveHttp, bearerToken } = await import(
+  process.env.MCPACK_ENTRY ?? '/opt/mcpack/dist/index.js'
+);
 
 const token = process.env.MCPACK_HTTP_TOKEN;
 
-if (!token)
-  throw Error('MCPACK_HTTP_TOKEN is required');
+if (!token) throw Error('MCPACK_HTTP_TOKEN is required');
 
 const hosts = new Set([
   '127.0.0.1',
@@ -22,15 +20,13 @@ if (process.env.ECS_CONTAINER_METADATA_URI_V4) {
   const metadata = await fetch(process.env.ECS_CONTAINER_METADATA_URI_V4, {
     signal: AbortSignal.timeout(5000),
   }).then((r) => {
-    if (!r.ok)
-      throw Error('ECS metadata unavailable');
+    if (!r.ok) throw Error('ECS metadata unavailable');
 
     return r.json();
   });
 
   for (const network of metadata.Networks ?? [])
-    for (const ip of network.IPv4Addresses ?? [])
-      hosts.add(ip);
+    for (const ip of network.IPv4Addresses ?? []) hosts.add(ip);
 }
 
 const host = await serveHttp(fileURLToPath(new URL('./mcpack.json', import.meta.url)), {

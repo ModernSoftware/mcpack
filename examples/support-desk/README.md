@@ -111,6 +111,32 @@ See [the deployment runbook](AWS.md). Terraform creates real, billable resources
 It is never applied by CI. An existing DNS name and issued ACM certificate are
 required. The runbook separates provisioning, seeding and service startup.
 
+## Formatting before pushing
+
+Run from the repository root, using the lockfile-installed Prettier (3.6.2):
+
+```bash
+npm ci
+npm run format
+npm run format:check
+```
+
+These npm scripts check JavaScript, JSON, Markdown and other Prettier-supported
+files. Terraform has a separate formatter; CI uses Terraform 1.13.5:
+
+```bash
+terraform fmt -recursive examples/support-desk/infra
+terraform fmt -check -recursive examples/support-desk/infra
+```
+
+Review `git diff` and include the formatter's changes in your commit before
+pushing. CI checks the committed files, not unsaved editor buffers or uncommitted
+local fixes. If local results differ, compare `git rev-parse HEAD` with the failed
+run's commit and run `npm exec -- prettier --version` from the root. An editor's
+formatter or a global Prettier installation can differ from the pinned CLI.
+Prettier may collapse short unbraced `if` statements onto one line; use braces
+when you want an explicit multi-line block.
+
 ## Validation and release evidence
 
 The `Support Desk PoC` GitHub workflow builds/runs Compose, exercises both

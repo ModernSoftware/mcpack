@@ -5,8 +5,7 @@ import { database } from './db.mjs';
 const db = database();
 const token = process.env.REFUND_API_TOKEN;
 
-if (!token)
-  throw Error('REFUND_API_TOKEN is required');
+if (!token) throw Error('REFUND_API_TOKEN is required');
 
 const hash = (value) => createHash('sha256').update(value).digest();
 const expected = hash(`Bearer ${token}`);
@@ -18,8 +17,7 @@ const reply = (res, status, body) => {
 
 const server = createServer({ maxHeaderSize: 8192 }, async (req, res) => {
   try {
-    if (req.url === '/healthz' && req.method === 'GET')
-      return reply(res, 200, { status: 'ready' });
+    if (req.url === '/healthz' && req.method === 'GET') return reply(res, 200, { status: 'ready' });
 
     if (!timingSafeEqual(expected, hash(req.headers.authorization ?? '')))
       return reply(res, 401, { error: 'Unauthorized' });
@@ -40,13 +38,11 @@ const server = createServer({ maxHeaderSize: 8192 }, async (req, res) => {
     let body = '';
     for await (const chunk of req) {
       body += chunk.toString();
-      if (Buffer.byteLength(body) > 4096)
-        return reply(res, 413, { error: 'Body too large' });
+      if (Buffer.byteLength(body) > 4096) return reply(res, 413, { error: 'Body too large' });
     }
 
     let args;
     try {
-
       args = JSON.parse(body);
     } catch {
       return reply(res, 400, { error: 'Invalid JSON' });
@@ -68,8 +64,7 @@ const server = createServer({ maxHeaderSize: 8192 }, async (req, res) => {
     const fault =
       process.env.SIMULATOR_FAULTS_ENABLED === 'true' ? req.headers['x-simulate'] : undefined;
 
-    if (fault === 'unavailable')
-      return reply(res, 503, { error: 'Simulated service unavailable' });
+    if (fault === 'unavailable') return reply(res, 503, { error: 'Simulated service unavailable' });
 
     const connection = await db.connect();
 
@@ -132,8 +127,7 @@ const server = createServer({ maxHeaderSize: 8192 }, async (req, res) => {
 
     return reply(res, 200, { refund });
   } catch {
-    if (!res.destroyed)
-      reply(res, 500, { error: 'Refund service failed' });
+    if (!res.destroyed) reply(res, 500, { error: 'Refund service failed' });
   }
 });
 

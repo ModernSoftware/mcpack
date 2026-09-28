@@ -38,13 +38,11 @@ try {
     ['desk_app', process.env.APP_DB_PASSWORD],
     ['refund_app', process.env.REFUND_DB_PASSWORD],
   ]) {
-    if (!password)
-      throw Error('Application database passwords must be supplied');
+    if (!password) throw Error('Application database passwords must be supplied');
 
     const exists = await pool.query('SELECT 1 FROM pg_roles WHERE rolname=$1', [role]);
 
-    if (!exists.rowCount)
-      await pool.query(`CREATE ROLE ${role} LOGIN PASSWORD ${quote(password)}`);
+    if (!exists.rowCount) await pool.query(`CREATE ROLE ${role} LOGIN PASSWORD ${quote(password)}`);
 
     await pool.query(`GRANT USAGE ON SCHEMA desk TO ${role}`);
   }
@@ -59,8 +57,7 @@ try {
   try {
     await s3.send(new HeadBucketCommand({ Bucket: bucket }));
   } catch (error) {
-    if (!process.env.S3_ENDPOINT)
-      throw error;
+    if (!process.env.S3_ENDPOINT) throw error;
 
     await s3.send(new CreateBucketCommand({ Bucket: bucket }));
   }
@@ -103,7 +100,7 @@ try {
       }),
     );
 
-    console.log(
+  console.log(
     'Seeded 2,000 customers, 10,000 orders and 102 S3 documents; existing business writes preserved.',
   );
 } finally {
