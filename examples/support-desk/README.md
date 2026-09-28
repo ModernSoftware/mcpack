@@ -110,12 +110,44 @@ CI installs this lock and imports the agent on Linux/Windows with Python 3.11
 and 3.13, without invoking a model. The Compose job also checks MCP discovery.
 
 Try: “Investigate the damaged delivery for ORD-10482. Find its invoice and policy,
-check eligibility, and help me request a refund.” The agent exposes a terminal
-approval wrapper instead of the raw refund tool. The operator must type
-`APPROVE`. Server-side `confirmed: true` is a workflow flag, **not proof of human
-consent or per-user authorization**. Any holder of the service token can invoke
-the API directly. This sample is a trusted support-operator system, not a
-customer-facing multi-tenant service.
+check eligibility, and help me request a refund.”
+
+The agent exposes `approve_refund(order_id, claim_id, idempotency_key)` instead of
+the raw submission tool. Its deterministic wrapper fetches the order and open
+claim, discovers and **reads both invoice and policy**, checks eligibility and
+amount consistency, and displays the complete evidence snapshot before asking
+the operator to type `APPROVE`. Missing/failed evidence blocks submission. This
+retrieval does not prove the model understood the documents; the operator sees
+them for review, and the refund API independently enforces eligibility.
+
+If submission raises an error or returns an unverified result, the wrapper queries
+status with the original key. It reports `processed` only when the claim, key,
+amount and processed status match. Otherwise it reports `unknown` and does not
+resubmit. Repeated approval for the same claim in this agent session only checks
+status; a changed key is rejected. Session tracking is in memory. After restarting
+the agent, preserve the original claim/key and reconcile it before another action;
+durable uniqueness remains in the refund API. Do not open a replacement claim to
+bypass an uncertain outcome.
+
+This is a **client-side workflow guard**, not additional MCPack authorization.
+Server-side `confirmed: true` is not proof of human consent; another client holding
+the service token can invoke the raw tool directly. This remains a trusted
+support-operator sample, not a customer-facing multi-tenant/payment system.
+Enforcing mandatory evidence/approval across all clients would require a durable
+application-side approval record, beyond this sample's scope.
+
+Run the approval unit tests without a model, database or cloud account:
+
+```bash
+python -m unittest discover -s examples/support-desk/agent -p "test_*.py" -v
+```
+
+With Compose running and the agent dependencies installed, test real MCP evidence
+retrieval, denial and submission without a model (creates synthetic records):
+
+```bash
+MCPACK_HTTP_TOKEN=local-mcp-only python examples/support-desk/agent/smoke_refund.py
+```
 
 ## AWS deployment
 
