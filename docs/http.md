@@ -97,7 +97,7 @@ are independent: whichever deadline expires first wins. Excess HTTP admission re
 are limited to 16 KiB. These are process-level limits, not distributed rate limiting.
 Worker `maxOutputBytes` and `maxDiagnosticBytesPerSecond` apply independently of HTTP
 limits; see [native contracts](contracts.md#output-limits-and-compatibility). There is no
-worker memory quota in this alpha.
+worker memory quota in v0.9.0.
 
 `GET /healthz` reports that the HTTP process is responding; `GET /readyz` returns 200
 only while every worker is ready, otherwise 503. A failed worker makes readiness fail,

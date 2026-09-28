@@ -1,13 +1,13 @@
-name: Stage npm alpha
+name: Stage npm release
 on:
   push:
-    tags: ['v*-alpha.*']
+    tags: ['v*']
   workflow_dispatch:
 permissions:
   contents: read
   id-token: write
 concurrency:
-  group: npm-alpha-publication
+  group: npm-publication
   cancel-in-progress: false
 jobs:
   publish:
@@ -30,9 +30,13 @@ jobs:
       - run: npm run format:check
       - run: npm test
       - run: npm run test:package
-      - run: npm run release:check -- --publish
-      - name: Stage alpha using npm trusted publishing
-        run: npm stage publish --tag alpha
+      - name: Validate release and select channel
+        id: release
+        run: npm run release:check -- --publish --github-output
+      - name: Stage using npm trusted publishing
+        env:
+          NPM_DIST_TAG: ${{ steps.release.outputs.dist_tag }}
+        run: npm stage publish --tag "$NPM_DIST_TAG"
       - name: Explain maintainer approval
         run: |
           cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'

@@ -16,7 +16,7 @@ One active invocation per worker remains the default to preserve sequential shar
 
 ## 3. No implicit retry after ambiguous execution
 
-A failed process or timeout does not prove an external side effect failed. The alpha retires affected workers and returns explicit errors. Opt-in process recovery has a separate supervisor and documented backoff/health contract. It never retries operations; each process generation owns its own callbacks and callers.
+A failed process or timeout does not prove an external side effect failed. The runtime retires affected workers and returns explicit errors. Opt-in process recovery has a separate supervisor and documented backoff/health contract. It never retries operations; each process generation owns its own callbacks and callers.
 
 ## 4. One core for Forge and standalone serving
 
@@ -32,4 +32,4 @@ This implementation pins the official TypeScript server and client packages to 2
 
 Persistent processes amortize process startup and application initialization. Every call still incurs serialization, IPC, scheduling and validation overhead. No performance claim follows simply from the architecture. Later measurements must separate cold start, warm latency, throughput, memory per worker and behavior under saturation, using realistic I/O and CPU workloads.
 
-The alpha now has a standalone HTTP host with admission authentication, input byte/concurrency limits, readiness and bounded shutdown. It does not have OAuth/tenant identity propagation, hard memory isolation or a process-tree supervisor. Those limitations must be addressed for the intended deployment environment before a production release.
+The runtime has a standalone HTTP host with admission authentication, input byte/concurrency limits, readiness and bounded shutdown. It does not have OAuth/tenant identity propagation, hard memory isolation or a process-tree supervisor. Evaluate those boundaries against the intended deployment and isolate the service accordingly.

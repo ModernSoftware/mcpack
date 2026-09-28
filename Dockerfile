@@ -9,7 +9,7 @@ COPY src ./src
 COPY runtimes ./runtimes
 COPY examples ./examples
 COPY docs ./docs
-COPY README.md LICENSE NOTICE ./
+COPY README.md LICENSE NOTICE CHANGELOG.md SECURITY.md ./
 # Package the same public files as npm; install runtime dependencies from the lockfile.
 RUN npm pack --pack-destination /tmp \
     && mkdir /package \

@@ -23,3 +23,6 @@
 **/*.tfstate*
 **/*.tfvars
 **/*.tfplan
+
+!CHANGELOG.md
+!SECURITY.md

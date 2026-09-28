@@ -1,64 +1,51 @@
-# Implementation sequence
+# MCPack and Modern MCP Forge roadmap
 
-## Increment 1 — Native contracts and Node runtime (completed)
+This is a direction of travel, not a delivery-date commitment. Track implementation
+through issues and reviewed PRs in each repository.
 
-Versioned manifest; explicit factory, handler, result and error contracts; persistent named Node processes; bounded queues; deadline/cancellation semantics; stdio server; embedding API; a native example; lifecycle/protocol tests; package and CI scaffolding.
+## v0.9.0 scope — implemented and frozen
 
-Acceptance: native discovery and invocation work through a real MCP client; state persists without launching per call; separate workers run independently; failures and shutdown settle outstanding callers.
+- Manifest/handler/error contracts and persistent Node/Python workers.
+- Stdio and stateless Streamable HTTP, embedding API and installed-package tests.
+- Bounded opt-in concurrency, FIFO queues, deadlines, cancellation, shutdown,
+  output/diagnostic limits and opt-in worker recovery without operation replay.
+- Service-token/custom admission auth, Host/Origin checks, probes and request limits.
+- Linux/Windows CI, Docker reference, reproducible benchmarks and staged publishing.
+- Support Desk local/AWS sample, 10K orders, S3 evidence, refund simulator and
+  deterministic agent approval/reconciliation tests.
+- Forge native integration prototype verified; this is not yet its final project UI.
 
-## Increment 2 — Forge consumes MCPack for native projects (prototype verified)
+## Next — distribute and gather operational evidence
 
-Inspect current project persistence and Monaco editing flow. Add a native source adapter using MCPackRuntime. Keep modules in the developer's repository, compile TS explicitly, show worker diagnostics/state, and restart deliberately after edits. Verify Forge and standalone execution produce the same discovery and results from the same files. Migrate existing custom-native projects explicitly with a manifest conversion, rather than silently changing their ABI.
+Approve v0.9.0, pin the example to that exact npm release, retain source-built CI,
+and collect sustained-load, full process-tree memory, restart and rolling-update
+results. Fix demonstrated defects before adding scope. The maintainer has reported
+AWS DNS/token/Inspector/Bedrock interoperability; that evidence is distinct from
+capacity, failover or security certification.
 
-## Python native workers (completed)
+## MCPack follow-up
 
-Persistent Python 3.11+ workers use the same host scheduler and native result contracts. Cover both runtimes with lifecycle tests; verify a mixed-language server and the installed npm artifact. Keep Forge’s tested `v0.10.0` branch unchanged and run its pinned regression suite against MCPack changes.
+1. .NET runner with contract, cancellation, framing, lifecycle and packaging parity.
+2. Go runner with the same acceptance criteria.
+3. Evaluate request identity propagation and broader MCP capabilities against actual
+   consumer needs. Do not imply that a service token establishes tenant isolation.
+4. Consider worker pools, memory controls and operational tooling only with measured
+   requirements and explicit failure semantics.
 
-After this increment: measure the mixed-runtime implementation and harden deployment, then return to Forge project integration. The dedicated native prototype view is not the final project/source design.
+## Forge follow-up
 
-## Forge external MCP sources and language bridges (subsequent integration)
+Work lives in [Modern MCP Forge](https://github.com/ModernSoftware/modern-mcp-forge).
+Its `v0.10.0` integration prototype is a step toward:
 
-Define Forge's source interface for discovery, execution, refresh, health and disposal. Add remote MCP connection configuration and authentication ownership. Implement TypeScript/Python bridges as developer-authored adapters. Preserve source definitions and schemas, track original identity, handle names and resource URI collisions, and maintain reversible routing aliases. Add capability-change handling and session reconnection. These sources remain outside MCPack manifests and deployments.
+1. Project-level native manifests/handlers in the developer's repo, Monaco editing,
+   diagnostics, worker health and deliberate reload. Verify standalone parity and
+   explicitly migrate old native definitions rather than silently changing their ABI.
+2. External MCP sources with clear authentication ownership and lifecycle handling.
+3. Developer-authored language bridges, starting with TypeScript/Python.
+4. One development endpoint combining native, bridged and external capabilities,
+   preserving source schemas/identity while handling name and URI collisions.
+5. Native MCPack export/deployment independent of the UI, plus tutorials and the
+   real application walkthrough.
 
-## Current increment — HTTP and release foundation
-
-Add stateless Streamable HTTP using the same native runtime, service-token/custom admission authentication, request limits, health/readiness and shutdown handling. Add a reproducible benchmark and release-candidate/npm-alpha workflows. Identity propagation, OAuth, hard process-memory quotas and extended soak measurements remain follow-up work. Opt-in worker recovery is covered by deployment readiness below. Output budgets are covered by the hardening increment below. This is an alpha release foundation, not a production-readiness claim.
-
-## Increment 5 — Additional runtimes and deployable artifacts
-
-Python worker transport and dependency conventions are covered by the current increment; defer .NET until Node/Python contracts are proven. Produce minimal base images per runtime combination with pinned dependencies, non-root execution and health checks. Keep project code and dependencies visible and independent of Forge. Decide license and distribution before publishing packages/images.
-
-## Increment 6 — Evidence and public reference project
-
-Benchmark cold/warm latency, saturation, memory, worker death and realistic DB/API workloads. Expand the original incident/evidence benchmark across native MCPack, FastMCP and official SDK sources in Forge. Document the actual edit/test/deploy workflow and its limitations before writing the Medium article.
-
-## Hardening toward 0.9.0 and AWS validation
-
-The output-hardening increment added finite worker response budgets, bounded Python frame parsing,
-diagnostic delivery quotas/counters, and documented failure/compatibility semantics.
-Node IPC deserialization and application allocation remain outside hard memory limits.
-
-Follow with deliberate worker recovery policy, realistic DB/API load and fault tests,
-process-tree memory measurement, authentication/TLS/proxy deployment validation, and
-stable manifest/error/health interfaces. Forge continues consuming supported public
-interfaces; external sources and bridges remain Forge concerns.
-
-Track the AWS support-agent experiment in [issue #14](https://github.com/ModernSoftware/mcpack/issues/14):
-a small Terraform project, database-backed tools, scoped S3 access, and the same native
-project usable from Forge. Validate a candidate before declaring 0.9.0, then pin the
-example to the published 0.9.0 package. Evidence must include failure/recovery and sustained
-operation, not just a successful deployment. Infrastructure selection, Terraform planning,
-and resource creation are a later task; this increment does not provision AWS resources.
-
-Opt-in Node/Python concurrency retains sequential defaults, bounds active and queued
-calls separately, and tests overlap, out-of-order results, shared capability capacity,
-Python thread-pool saturation, cancellation, worker death and concurrent cleanup.
-Worker recovery is delivered in the subsequent deployment-readiness increment; automatic operation retry remains out of scope.
-
-## Deployment readiness (issue #18)
-
-Opt-in supervisor recovery, bounded restart budgets/backoff, health/readiness,
-security regression tests and a non-root Node/Python reference image prepare a
-release candidate for issue #14. Initial startup remains fail-fast; calls are never
-replayed. The AWS experiment must still validate real authentication/TLS/proxy setup,
-DB/S3/API access, sustained load, memory and ambiguous-write behavior before 0.9.0.
+External MCP/bridge aggregation remains Forge's responsibility. MCPack manifests
+and deployments remain native-only; .NET/Go are deferred beyond v0.9.0.
