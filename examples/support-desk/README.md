@@ -97,6 +97,18 @@ export MCPACK_HTTP_TOKEN=local-mcp-only
 python examples/support-desk/agent/main.py
 ```
 
+The hashed dependency lock covers Linux and Windows, including Windows-only
+transitive dependencies. After pulling a lockfile fix, rerun the install command
+inside your activated virtual environment; keep `--require-hashes` enabled.
+Maintainers can regenerate it with a universal resolution (uv 0.12.18):
+
+```bash
+uv pip compile examples/support-desk/agent/requirements.in --universal --python-version 3.11 --generate-hashes -o examples/support-desk/agent/requirements.txt
+```
+
+CI installs this lock and imports the agent on Linux/Windows with Python 3.11
+and 3.13, without invoking a model. The Compose job also checks MCP discovery.
+
 Try: “Investigate the damaged delivery for ORD-10482. Find its invoice and policy,
 check eligibility, and help me request a refund.” The agent exposes a terminal
 approval wrapper instead of the raw refund tool. The operator must type
