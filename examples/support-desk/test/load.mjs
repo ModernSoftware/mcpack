@@ -1,7 +1,9 @@
 import { performance } from 'node:perf_hooks';
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
+
 const count = Number(process.env.REQUESTS ?? 100);
 const concurrency = Number(process.env.CONCURRENCY ?? 4);
+
 if (
   !Number.isInteger(count) ||
   count < 1 ||
@@ -11,10 +13,12 @@ if (
   concurrency > 32
 )
   throw Error('REQUESTS must be 1..10000; CONCURRENCY 1..32');
+
 const client = new Client({ name: 'support-desk-load', version: '1' });
 const durations = [];
-let next = 0,
-  failures = 0;
+
+let next = 0, failures = 0;
+
 try {
   await client.connect(
     new StreamableHTTPClientTransport(new URL(process.env.MCP_URL ?? 'http://localhost:3000/mcp'), {
@@ -23,7 +27,9 @@ try {
       },
     }),
   );
+
   const start = performance.now();
+
   await Promise.all(
     Array.from({ length: concurrency }, async () => {
       while (next++ < count) {
@@ -41,9 +47,12 @@ try {
       }
     }),
   );
+
   durations.sort((a, b) => a - b);
+
   const percentile = (p) =>
     Math.round(durations[Math.min(durations.length - 1, Math.ceil(durations.length * p) - 1)]);
+
   console.log(
     JSON.stringify(
       {
@@ -59,7 +68,8 @@ try {
       2,
     ),
   );
-  if (failures) process.exitCode = 1;
+  if (failures)
+    process.exitCode = 1;
 } finally {
   await client.close();
 }

@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { database, result, failure } from './db.mjs';
+
 export function createWorker() {
   const db = database();
+
   return {
     tools: {
       find_orders: async ({ customer_id, after = '', limit = 20 }) => {
