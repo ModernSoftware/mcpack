@@ -23,8 +23,9 @@ jobs:
           python-version: ${{ matrix.python }}
       - run: python -m pip install --require-hashes -r examples/support-desk/agent/requirements.txt
       - run: python -m pip check
+      - run: python -m unittest discover -s examples/support-desk/agent -p "test_*.py" -v
       - name: Import agent without model or MCP calls
-        run: python -c "import runpy; runpy.run_path('examples/support-desk/agent/main.py', run_name='dependency_check')"
+        run: python -c "import runpy, sys; sys.path.insert(0, 'examples/support-desk/agent'); runpy.run_path('examples/support-desk/agent/main.py', run_name='dependency_check')"
   local:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -46,6 +47,10 @@ jobs:
           python-version: '3.12'
       - run: pip install --require-hashes -r examples/support-desk/agent/requirements.txt
       - run: python examples/support-desk/agent/main.py --check
+        env:
+          MCPACK_HTTP_TOKEN: local-mcp-only
+      - name: Exercise approval against the real local MCP services
+        run: python examples/support-desk/agent/smoke_refund.py
         env:
           MCPACK_HTTP_TOKEN: local-mcp-only
       - name: Logs

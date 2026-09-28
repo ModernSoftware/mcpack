@@ -119,3 +119,19 @@ specific experiment images deliberately, then destroy that root. Secrets have
 a seven-day recovery window; using the same name immediately after deletion can
 conflict. Verify no ALB, tasks, database, images or logs remain billable. Retain
 only sanitized test evidence; protect/delete state backups containing secrets.
+
+## Release evidence and package consumption
+
+The maintainer reported successful AWS deployment with DNS, a bearer-token secret,
+Inspector access, and a Nova Pro/Bedrock agent calling the remote endpoint on
+2026-09-28. This establishes deployment and functional interoperability; it is
+not a sustained-load or failover certification. Record the tested image digest,
+HTTPS URL, task sizing, sustained-load results and restart/rolling-update outcomes
+in issue #14. Use the certificate-backed `https://` endpoint for bearer tokens.
+
+The release scope is Node and Python; .NET and Go runners are deferred. This
+checkout builds the candidate library from source to exercise pending changes.
+After approving and publishing the tested release, switch the sample to the exact
+`@modern-software/mcpack` registry version with a lockfile and rerun its integration
+tests. Keep a source-built CI path so changes to the library still exercise the
+sample before publication. Do not use a floating `latest` dependency.
