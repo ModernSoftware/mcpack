@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/banner.svg" alt="MCPack — Native MCP tools. Multiple runtimes. One manifest." width="100%" />
+  <img src="https://raw.githubusercontent.com/ModernSoftware/mcpack/main/docs/assets/banner.svg" alt="MCPack — Native MCP tools. Multiple runtimes. One manifest." width="100%" />
 </p>
 
 <p align="center">
@@ -7,7 +7,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="Apache 2.0" /></a>
   <img src="https://img.shields.io/badge/Node.js-22%2B-43853d" alt="Node.js 22+" />
   <img src="https://img.shields.io/badge/Python-3.11%2B-3776ab" alt="Python 3.11+" />
-  <img src="https://img.shields.io/badge/status-alpha-orange" alt="Alpha" />
+  <a href="https://www.npmjs.com/package/@modern-software/mcpack"><img src="https://img.shields.io/npm/v/@modern-software/mcpack" alt="npm version" /></a>
 </p>
 
 <p align="center">
@@ -19,9 +19,20 @@
 
 # MCPack
 
-MCPack runs native MCP tools, resources, and prompts from a versioned project manifest. It keeps handler processes alive between calls and exposes their capabilities through the official TypeScript MCP SDK.
+**MCPack is a manifest-driven runtime for building and deploying MCP servers.**
+Connect native tools, resources and prompts written in Node or Python to one server,
+keep their workers alive between calls, and expose them over stdio or Streamable HTTP.
+Its aim is to make multi-language MCP execution consistent from development to deployment,
+with explicit lifecycle, concurrency and failure handling.
 
-This alpha supports **Node and Python native workers**. Modern MCP Forge’s `v0.10.0` branch contains the first native integration; it is not yet a production release.
+MCPack provides the native execution foundation for
+[**Modern MCP Forge**](https://github.com/ModernSoftware/modern-mcp-forge), our visual MCP
+development environment. Use it independently through the CLI or Node API, or develop
+native projects through Forge's integration. The Forge prototype is verified; full
+project-level integration remains on the roadmap.
+
+[**npm package**](https://www.npmjs.com/package/@modern-software/mcpack) ·
+[**Changelog**](CHANGELOG.md) · [**Benchmarks**](docs/performance.md)
 
 ## Write handlers. Keep your runtime. Serve MCP.
 
@@ -33,7 +44,7 @@ This alpha supports **Node and Python native workers**. Modern MCP Forge’s `v0
 | ⏱️ Bounded execution | Queue limits, deadlines, cancellation, and bounded shutdown.         |
 | 🛠️ Develop in Forge  | Test the same native manifest and code used by the standalone CLI.   |
 
-![MCPack architecture: clients reach one Node host backed by persistent Node and Python workers](docs/assets/architecture.svg)
+![MCPack architecture: clients reach one Node host backed by persistent Node and Python workers](https://raw.githubusercontent.com/ModernSoftware/mcpack/main/docs/assets/architecture.svg)
 
 **MCPack owns native execution and deployment.** Modern MCP Forge provides the development
 UI. External MCP connections and language bridges belong to Forge's integration roadmap;
@@ -168,7 +179,7 @@ The standalone CLI supports stdio and HTTP. Forge continues to own its separate 
 
 ## Embed the same runtime
 
-Once the package is installed from a local tarball or workspace:
+After installing the npm package (or a local tarball while testing a release):
 
 ```ts
 import { MCPackRuntime, createMcpServer } from '@modern-software/mcpack';
@@ -199,30 +210,111 @@ Forge’s native prototype launches the MCPack CLI over stdio, using the same ru
 - Worker stdout/stderr are diagnostics, separated from MCP protocol stdout. Treat diagnostics as potentially sensitive application output.
 - Environment inheritance is explicit, apart from basic OS executable/temp variables. Use `inheritEnv` for credentials provided by your deployment environment. Do not put secrets in the manifest's literal `env` object.
 
-## Scope and next steps
+## Security and deployment boundaries
 
-Implemented: manifest validation, Node/Python factories, persistent named workers, bounded queues, cancellation/deadlines, graceful shutdown, text tool/resource/prompt results, static discovery, stdio/Streamable HTTP serving, request admission limits, bearer authentication or a custom authorization hook, health probes, a benchmark harness, and an embedding API.
+MCPack is designed for **trusted application code and controlled service access**.
+It supplies execution and transport controls; your deployment supplies TLS,
+identity policy, secret management and resource isolation.
 
-Not implemented: OAuth/tenant identity propagation, .NET workers, replicated worker pools, hot reload, resource templates/subscriptions, binary or rich media results, output schemas, tasks, sampling, and elicitation. No latency or production-readiness claim is made yet.
+| Included                                                              | Boundary                                                                                     |
+| --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Bearer service token or custom authorization callback                 | Endpoint admission; no built-in OAuth issuer, tenant propagation or per-tool permissions     |
+| Host/Origin checks; authenticated non-loopback binding                | Terminate TLS at ingress and restrict direct backend access                                  |
+| Strict manifest/input/result validation and project entrypoint checks | Schema `format` assertions are not validated; handlers remain responsible for business rules |
+| Explicit worker environment forwarding                                | Use a secret manager/environment; never commit credentials in manifests                      |
+| Bounded requests, queues, deadlines, outputs and diagnostics          | Admission limits are not distributed rate limiting or memory quotas                          |
+| Process isolation and opt-in restart with backoff                     | Workers are not sandboxes; timeout/cancellation can fail sibling calls in that worker        |
+| No automatic operation replay                                         | Applications own idempotency and reconciliation of uncertain external writes                 |
 
-Handler code is **trusted executable code**. A child process and a project-relative entrypoint are not a sandbox. Modules can import other files, access the network and filesystem, spawn children, and cause side effects. Use deployment isolation for untrusted code. Killing a worker does not manage arbitrary descendants it spawned.
+CI tests authentication failures, request limits, cancellation, crashes, recovery,
+cleanup and installed-package operation. The Support Desk sample has also been
+reported working on AWS through public ingress with Inspector and a Bedrock agent.
+These checks do not constitute a penetration test, SLA or certification for every
+production workload. See [security policy](SECURITY.md), [HTTP/authentication](docs/http.md)
+and [deployment guidance](docs/deployment.md).
+
+## Performance and capacity
+
+The [benchmark guide and raw reports](docs/performance.md) distinguish synthetic
+runtime overhead from application/network latency. A maintainer-reported Support
+Desk run measured **100 requests at concurrency 4**, with **0 failures**, **202 ms
+p50**, **452 ms p95**, **886 ms p99**, and **18.09 requests/second**. This roughly
+5.5-second smoke run is not a maximum-capacity test; its exact endpoint, machine and
+commit were not captured with the measurements.
+
+| Control                                      |                                      Default | Configurable range / meaning                                                                             |
+| -------------------------------------------- | -------------------------------------------: | -------------------------------------------------------------------------------------------------------- |
+| Active calls per worker (`maxConcurrent`)    |                                            1 | 1–1,000; opt in only for handlers safe to overlap                                                        |
+| Waiting calls per worker (`maxQueue`)        |                                           32 | 0–1,000; queue wait counts toward the invocation deadline                                                |
+| Admitted HTTP exchanges (`maxInFlight`)      |                                          128 | 1–10,000 per host; includes auth/body reads, not a requests/sec target                                   |
+| Invocation deadline                          |                                   30 seconds | 1–300,000 ms per worker                                                                                  |
+| HTTP request body / worker response envelope |                                   1 MiB each | Separate configurable limits, up to 64 MiB each                                                          |
+| Tools/resources/prompts                      | No explicit count cap in the manifest schema | Practical size depends on memory, discovery responses and client limits; no large-catalog capacity claim |
+
+The Support Desk sample overrides these defaults: **3 workers**, **4 concurrent
+calls per worker**, **16 queued calls per worker**, and **32 admitted HTTP
+exchanges**, serving **9 tools, 2 resources and 2 prompts**. These are tested example
+settings, not total connection or catalog limits. CPU work, DB connection pools,
+upstream quotas and response sizes determine throughput. There is no measured
+maximum TCP connection count or universal requests/sec guarantee. Load-test your
+workload before sizing replicas; multiple replicas do not share in-memory state.
+
+## Scope
+
+Node and Python native tools/resources/prompts; static discovery; text/JSON results;
+stdio and stateless Streamable HTTP; embedding API; bounded concurrency, queues,
+deadlines and opt-in recovery. The HTTP host has no persistent MCP session store.
+
+Not included: .NET/Go workers, built-in OAuth/user-context propagation, runtime
+sandboxing, hard per-worker memory quotas, hot reload, resource templates/subscriptions,
+binary media results, output schemas, tasks, sampling or elicitation.
+
+Handler code is **trusted executable code**. Project-relative entrypoint checks do
+not prevent imports, filesystem/network access, subprocess creation or external side
+effects. Use deployment isolation. Killing a worker does not manage arbitrary
+child processes it spawned or guarantee rollback of a database/API operation.
 
 ## Distribution
 
-The package is configured for public publication as **`@modern-software/mcpack`** under
-**Apache-2.0**. Registry publication is a separate, manually controlled release step;
-this README does not imply that the first alpha has been published.
+Find the package and registry README at
+[**@modern-software/mcpack on npm**](https://www.npmjs.com/package/@modern-software/mcpack).
+This checkout prepares **0.9.0**; that version becomes installable after the release
+workflow stages it and the maintainer approves publication. The npm badge shows
+registry state, which may lag this branch.
 
-Until the first release, use the repository or install an `npm pack` tarball.
-After publication, install the alpha in your own project:
+Once 0.9.0 is approved:
 
 ```sh
-npm install @modern-software/mcpack@alpha
+npm install --save-exact @modern-software/mcpack@0.9.0
 npx mcpack validate ./mcpack.json
 npx mcpack serve ./mcpack.json --transport http --port 3000
 ```
 
-Node and optional Python interpreters are deployment prerequisites, not bundled runtimes.
+Use your own manifest and handler files (see above). Node and optional Python
+interpreters/application dependencies are prerequisites, not bundled runtimes.
+The package includes compiled JS/types, the Python runner, documentation and small
+examples. The larger Support Desk lab is repository-only. Version 0.x permits API
+evolution; pin versions and review the [changelog](CHANGELOG.md) before upgrades.
+
+## Roadmap
+
+The v0.9.0 scope is frozen around Node and Python. These are planned directions,
+not release-date commitments; follow [issues](https://github.com/ModernSoftware/mcpack/issues)
+and the [detailed roadmap](docs/roadmap.md).
+
+| Project          | Next milestones                                                                                                  |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------- |
+| MCPack           | Approve v0.9.0 on npm; switch Support Desk to an exact registry pin while retaining source-built CI              |
+| MCPack           | Record sustained-load, process-tree memory, restart and rolling-update evidence; prioritize reproducible defects |
+| MCPack           | Add .NET, then Go runners using the existing lifecycle/error contracts and parity tests                          |
+| MCPack           | Evaluate identity propagation and additional MCP capabilities against concrete consumer requirements             |
+| Modern MCP Forge | Complete project-level native MCPack authoring, Monaco editing, diagnostics and deliberate reload                |
+| Modern MCP Forge | Add external MCP sources and language bridges, with authentication configuration and collision-safe routing      |
+| Modern MCP Forge | Combine sources in one development endpoint; export/deploy native MCPack projects independently                  |
+
+Forge integration work lives in
+[ModernSoftware/modern-mcp-forge](https://github.com/ModernSoftware/modern-mcp-forge).
+External/bridged source aggregation belongs to Forge; MCPack deployment remains native-only.
 
 ## Contributing
 

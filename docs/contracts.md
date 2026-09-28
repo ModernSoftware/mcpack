@@ -1,6 +1,6 @@
 # Native contracts v1
 
-The public manifest uses `schemaVersion: 1`. The private worker protocol independently uses `v: 1`. The TypeScript package remains an alpha; incompatible changes must be documented before consumers migrate. MCP wire negotiation belongs to the official SDK, not these version numbers.
+The public manifest uses `schemaVersion: 1`. The private worker protocol independently uses `v: 1`. The package is pre-1.0; incompatible changes must be documented before consumers migrate. MCP wire negotiation belongs to the official SDK, not these version numbers.
 
 ## Manifest
 
@@ -38,7 +38,7 @@ still permits calls while execution slots are free; it disables waiting.
 
 A worker runs with project root as cwd. Node uses the host’s Node executable without inherited CLI flags. Python uses the optional `executable` field (Python workers only), defaulting to `python` on Windows and `python3` elsewhere. An executable containing a path separator is resolved relative to the project; a bare name is resolved through PATH. It is never evaluated by a shell. Basic PATH/Path, SystemRoot/SYSTEMROOT, WINDIR, TEMP and TMP values are forwarded when present. Other values require opt-in. MCPack does not load `.env` files or expand `${VARIABLE}` strings. Factory code may use its own configuration library.
 
-Tool input schemas are compiled with strict Ajv JSON Schema 2020-12 validation. Root type must be object. Schema formats are not validated in this alpha. Inputs are not coerced, defaults are not injected, and additional fields are rejected only when the schema says so. Remote schema fetching is not enabled. Bound JSON serializable inputs cross IPC; callers must not mutate arguments after dispatch.
+Tool input schemas are compiled with strict Ajv JSON Schema 2020-12 validation. Root type must be object. Schema formats are not validated in v0.9.0. Inputs are not coerced, defaults are not injected, and additional fields are rejected only when the schema says so. Remote schema fetching is not enabled. Bound JSON serializable inputs cross IPC; callers must not mutate arguments after dispatch.
 
 ## Factory and handlers
 
@@ -56,7 +56,7 @@ type CreateWorker = (context: WorkerContext) => NativeWorker | Promise<NativeWor
 | Resource | `{ uri: string }`                          | `{ contents: [{ uri, text, mimeType? }] }`                                            |
 | Prompt   | String argument map                        | `{ messages: [{ role: 'user' \| 'assistant', content: TextContent }], description? }` |
 
-`TextContent` is `{ type: 'text', text: string }`. The host validates all outputs. Node additionally validates capability shapes inside its worker; Python validates JSON representability inside its runner. Both expose the same INVALID_RESULT behavior and keep the worker usable after invalid output. This alpha intentionally accepts a text-only MCP subset. A resource handler can only return entries for its requested static URI. Prompt arguments must be declared; required arguments must exist and all values must be strings.
+`TextContent` is `{ type: 'text', text: string }`. The host validates all outputs. Node additionally validates capability shapes inside its worker; Python validates JSON representability inside its runner. Both expose the same INVALID_RESULT behavior and keep the worker usable after invalid output. Version 0.9.0 intentionally accepts a text-only MCP subset. A resource handler can only return entries for its requested static URI. Prompt arguments must be declared; required arguments must exist and all values must be strings.
 
 Native handler context does not expose HTTP headers, authenticated identity, client roots, sampling or elicitation. The standalone HTTP admission hook verifies access before calling the SDK but does not populate handler identity. Handlers must not assume such information is present or that transport authorization has occurred.
 
@@ -68,7 +68,7 @@ Native handler context does not expose HTTP headers, authenticated identity, cli
 4. Route each request to its named worker. Each worker executes sequentially by default; opt-in `maxConcurrent` allows overlapping calls. Different workers are independent.
 5. Close the runtime to reject pending callers and request worker cleanup. Wait for exit, then force termination at the shutdown deadline.
 
-`start()` and `close()` are idempotent at the runtime level. A closed runtime cannot restart. Calls before successful start are rejected. A worker cannot be restarted individually in this alpha.
+`start()` and `close()` are idempotent at the runtime level. A closed runtime cannot restart. Calls before successful start are rejected. There is no public manual per-worker restart API; opt-in recovery can restart a failed worker (see recovery.md).
 
 Queued cancellation removes only that request. Active cancellation/deadline sends an abort notification and retires the process; signal delivery and cleanup are best effort before termination. The active caller gets its original cancellation/deadline error; all other active and queued callers get WORKER_UNAVAILABLE. With concurrency enabled, collateral active calls may already have produced external side effects. The system never retries an operation automatically. Optional process recovery is defined in [worker recovery](recovery.md). A cancelled or timed-out database write may already have committed; applications own idempotency and reconciliation.
 
