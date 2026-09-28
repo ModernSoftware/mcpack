@@ -1,6 +1,7 @@
 resource "aws_db_subnet_group" "database" {
   subnet_ids = aws_subnet.database[*].id
 }
+
 resource "aws_db_parameter_group" "database" {
   family = "postgres16"
   parameter {
@@ -8,6 +9,7 @@ resource "aws_db_parameter_group" "database" {
     value = "1"
   }
 }
+
 resource "aws_db_instance" "database" {
   identifier                  = var.name
   engine                      = "postgres"
@@ -29,10 +31,12 @@ resource "aws_db_instance" "database" {
   skip_final_snapshot         = var.allow_destroy_data
   final_snapshot_identifier   = "${var.name}-final"
 }
+
 resource "aws_s3_bucket" "documents" {
   bucket_prefix = "${var.name}-"
   force_destroy = var.allow_destroy_data
 }
+
 resource "aws_s3_bucket_public_access_block" "documents" {
   bucket                  = aws_s3_bucket.documents.id
   block_public_acls       = true
@@ -40,6 +44,7 @@ resource "aws_s3_bucket_public_access_block" "documents" {
   ignore_public_acls      = true
   restrict_public_buckets = true
 }
+
 resource "aws_s3_bucket_server_side_encryption_configuration" "documents" {
   bucket = aws_s3_bucket.documents.id
   rule {
@@ -48,6 +53,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "documents" {
     }
   }
 }
+
 resource "aws_s3_bucket_policy" "tls" {
   bucket = aws_s3_bucket.documents.id
   policy = jsonencode({
@@ -60,16 +66,19 @@ resource "aws_s3_bucket_policy" "tls" {
     }]
   })
 }
+
 resource "random_password" "secret" {
   for_each = toset(["app_db", "refund_db", "mcp_token", "refund_token"])
   length   = 32
   special  = false
 }
+
 resource "aws_secretsmanager_secret" "secret" {
   for_each                = random_password.secret
   name_prefix             = "${var.name}-${each.key}-"
   recovery_window_in_days = 7
 }
+
 resource "aws_secretsmanager_secret_version" "secret" {
   for_each      = random_password.secret
   secret_id     = aws_secretsmanager_secret.secret[each.key].id

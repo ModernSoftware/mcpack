@@ -33,13 +33,16 @@ locals {
     }
   }
 }
+
 resource "aws_ecs_cluster" "main" {
   name = var.name
 }
+
 resource "aws_cloudwatch_log_group" "app" {
   name              = "/ecs/${var.name}"
   retention_in_days = 7
 }
+
 resource "aws_iam_role" "execution" {
   for_each    = local.roles
   name_prefix = "${var.name}-${each.key}-exec-"
@@ -51,11 +54,13 @@ resource "aws_iam_role" "execution" {
     }]
   })
 }
+
 resource "aws_iam_role_policy_attachment" "execution" {
   for_each   = local.roles
   role       = aws_iam_role.execution[each.key].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
+
 resource "aws_iam_role_policy" "secrets" {
   for_each = local.roles
   role     = aws_iam_role.execution[each.key].id
@@ -65,11 +70,13 @@ resource "aws_iam_role_policy" "secrets" {
     }]
   })
 }
+
 resource "aws_iam_role" "task" {
   for_each           = local.roles
   name_prefix        = "${var.name}-${each.key}-task-"
   assume_role_policy = aws_iam_role.execution[each.key].assume_role_policy
 }
+
 resource "aws_iam_role_policy" "s3_read" {
   role = aws_iam_role.task["mcp"].id
   policy = jsonencode({
@@ -78,6 +85,7 @@ resource "aws_iam_role_policy" "s3_read" {
     }]
   })
 }
+
 resource "aws_iam_role_policy" "s3_seed" {
   role = aws_iam_role.task["seed"].id
   policy = jsonencode({
@@ -88,6 +96,7 @@ resource "aws_iam_role_policy" "s3_seed" {
     }]
   })
 }
+
 resource "aws_ecs_task_definition" "app" {
   for_each                 = local.roles
   family                   = "${var.name}-${each.key}"
@@ -132,10 +141,12 @@ resource "aws_ecs_task_definition" "app" {
   }])
   depends_on = [aws_iam_role_policy.secrets, aws_iam_role_policy_attachment.execution, aws_secretsmanager_secret_version.secret]
 }
+
 resource "aws_service_discovery_private_dns_namespace" "main" {
   name = "${var.name}.local"
   vpc  = aws_vpc.main.id
 }
+
 resource "aws_service_discovery_service" "refunds" {
   name = "refunds"
   dns_config {
@@ -150,6 +161,7 @@ resource "aws_service_discovery_service" "refunds" {
     failure_threshold = 1
   }
 }
+
 resource "aws_lb" "main" {
   name                       = var.name
   load_balancer_type         = "application"
@@ -157,6 +169,7 @@ resource "aws_lb" "main" {
   security_groups            = [aws_security_group.alb.id]
   drop_invalid_header_fields = true
 }
+
 resource "aws_lb_target_group" "mcp" {
   name                 = var.name
   port                 = 3000
@@ -170,6 +183,7 @@ resource "aws_lb_target_group" "mcp" {
     interval = 15
   }
 }
+
 resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.main.arn
   port              = 443
@@ -181,6 +195,7 @@ resource "aws_lb_listener" "https" {
     target_group_arn = aws_lb_target_group.mcp.arn
   }
 }
+
 resource "aws_route53_record" "mcp" {
   count   = var.zone_id == "" ? 0 : 1
   zone_id = var.zone_id
@@ -192,6 +207,7 @@ resource "aws_route53_record" "mcp" {
     evaluate_target_health = true
   }
 }
+
 resource "aws_ecs_service" "refunds" {
   name            = "refunds"
   cluster         = aws_ecs_cluster.main.id
@@ -207,6 +223,7 @@ resource "aws_ecs_service" "refunds" {
     registry_arn = aws_service_discovery_service.refunds.arn
   }
 }
+
 resource "aws_ecs_service" "mcp" {
   name                              = "mcp"
   cluster                           = aws_ecs_cluster.main.id

@@ -7,16 +7,20 @@ terraform {
     }
   }
 }
+
 variable "region" {
   type = string
 }
+
 variable "name" {
   type    = string
   default = "mcpack-support-desk"
 }
+
 provider "aws" {
   region = var.region
 }
+
 resource "aws_ecr_repository" "app" {
   name                 = var.name
   image_tag_mutability = "IMMUTABLE"
@@ -25,6 +29,7 @@ resource "aws_ecr_repository" "app" {
   }
   force_delete = false
 }
+
 output "repository_url" {
   value = aws_ecr_repository.app.repository_url
 }
