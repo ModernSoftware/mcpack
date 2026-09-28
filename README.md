@@ -245,3 +245,10 @@ See [worker recovery](docs/recovery.md) for opt-in restart policies and
 [deployment guidance](docs/deployment.md) for the non-root Node/Python Docker
 reference, service-identity security scope, probes, resource limits and AWS validation
 gates. This increment does not publish an image or claim production certification.
+
+## Realistic application sample
+
+The [Support Desk PoC](examples/support-desk/README.md) combines Node and Python
+workers with PostgreSQL, S3 documents, and a simulated refund API. Run it with
+Docker Compose without AWS credentials, or use its Terraform runbook to test
+the same application over public HTTPS on AWS.

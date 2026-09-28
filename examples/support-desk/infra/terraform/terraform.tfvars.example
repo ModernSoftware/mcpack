@@ -1,0 +1,9 @@
+region = "us-east-1"
+name = "mcpack-support-desk"
+hostname = "mcp.example.com"
+certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/REPLACE"
+zone_id = ""
+allowed_client_cidrs = ["203.0.113.10/32"]
+container_image = "123456789012.dkr.ecr.us-east-1.amazonaws.com/mcpack-support-desk@sha256:REPLACE"
+start_services = false
+allow_destroy_data = false
