@@ -46,11 +46,16 @@ registry=${repository%%/*}
 aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$registry"
 image_tag=$(git rev-parse --short=12 HEAD)
 docker buildx build --platform linux/amd64 --target support-desk \
-  -t "$repository:$image_tag" --push .
+  -f examples/support-desk/Dockerfile \
+  -t "$repository:$image_tag" --push examples/support-desk
 digest=$(aws ecr describe-images --repository-name "${repository#*/}" \
   --image-ids imageTag="$image_tag" --query 'imageDetails[0].imageDigest' --output text)
 printf 'Use this immutable container_image: %s@%s\n' "$repository" "$digest"
 ```
+
+This builds only the application image: MCPack 0.9.0 is installed from npm using
+the application lockfile, not compiled from the repository source. The Node/Python
+interpreters and application dependencies are still included in the image.
 
 ECR tags are immutable. Use a new commit/tag for a new build.
 

@@ -1,0 +1,13 @@
+# Maintainer override: exercise the checkout, not the published release.
+# Paths resolve relative to compose.yaml.
+x-source-build: &source-build
+  context: ../..
+  dockerfile: Dockerfile
+  target: support-desk
+services:
+  seed:
+    build: *source-build
+  refunds:
+    build: *source-build
+  mcp:
+    build: *source-build

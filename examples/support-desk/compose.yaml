@@ -1,7 +1,8 @@
 x-image: &image
   image: mcpack:support-desk
   build:
-    context: ../..
+    context: .
+    dockerfile: Dockerfile
     target: support-desk
 x-environment: &environment
   PGHOST: db

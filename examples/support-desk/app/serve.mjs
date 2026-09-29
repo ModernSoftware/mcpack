@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url';
 
 const { serveHttp, bearerToken } = await import(
-  process.env.MCPACK_ENTRY ?? '/opt/mcpack/dist/index.js'
+  process.env.MCPACK_ENTRY ?? '@modern-software/mcpack'
 );
 
 const token = process.env.MCPACK_HTTP_TOKEN;
