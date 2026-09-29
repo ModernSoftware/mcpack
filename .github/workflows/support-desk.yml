@@ -38,6 +38,7 @@ jobs:
             compose: compose.yaml:compose.source.yaml
     env:
       COMPOSE_FILE: ${{ matrix.compose }}
+      COMPOSE_PATH_SEPARATOR: ':'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

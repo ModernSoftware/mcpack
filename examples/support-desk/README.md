@@ -64,7 +64,8 @@ Keep the default path when evaluating the npm release. To exercise the current
 MCPack checkout instead, run from the repository root in Git Bash/Linux/macOS:
 
 ```bash
-COMPOSE_FILE=compose.yaml:compose.source.yaml bash examples/support-desk/scripts/local.sh
+COMPOSE_PATH_SEPARATOR=: COMPOSE_FILE=compose.yaml:compose.source.yaml \
+  bash examples/support-desk/scripts/local.sh
 ```
 
 The script changes into this sample before Compose reads these paths. This override
