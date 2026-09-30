@@ -21,6 +21,7 @@ export class MCPackError extends Error {
     message: string,
   ) {
     super(message);
+
     this.name = 'MCPackError';
   }
 }

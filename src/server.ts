@@ -1,15 +1,21 @@
 import { Server, ProtocolError } from '@modelcontextprotocol/server';
+
 import type { JsonObject } from './contracts.js';
+
 import { MCPackRuntime } from './runtime.js';
+
 import { MCPackError } from './errors.js';
 
 async function invoke<T>(operation: () => Promise<T>): Promise<T> {
   try {
     return await operation();
   } catch (error) {
-    if (!(error instanceof MCPackError)) throw new ProtocolError(-32603, 'Internal MCPack error');
+    if (!(error instanceof MCPackError)) {
+      throw new ProtocolError(-32603, 'Internal MCPack error');
+    }
 
     const invalid = ['INVALID_ARGUMENTS', 'NOT_FOUND'].includes(error.code);
+
     throw new ProtocolError(invalid ? -32602 : -32603, error.message, { mcpackCode: error.code });
   }
 }
@@ -21,11 +27,20 @@ export function createMcpServer(
 ): Server {
   const callSignal = (signal: AbortSignal) =>
     options.signal ? AbortSignal.any([signal, options.signal]) : signal;
+
   const manifest = runtime.project.manifest;
+
   const server = new Server(
-    { name: manifest.name, version: manifest.version },
     {
-      capabilities: { tools: {}, resources: {}, prompts: {} },
+      name: manifest.name,
+      version: manifest.version,
+    },
+    {
+      capabilities: {
+        tools: {},
+        resources: {},
+        prompts: {},
+      },
     },
   );
 
@@ -33,7 +48,10 @@ export function createMcpServer(
     tools: manifest.tools.map((tool) => ({
       name: tool.name,
       description: tool.description,
-      inputSchema: { ...tool.inputSchema, type: 'object' as const },
+      inputSchema: {
+        ...tool.inputSchema,
+        type: 'object' as const,
+      },
     })),
   }));
 

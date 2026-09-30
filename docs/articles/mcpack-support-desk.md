@@ -1,15 +1,14 @@
 # One MCP server, two languages: building a support desk with MCPack
 
-> Medium article draft. The commands and links are usable from GitHub; export the
-> Mermaid diagram as an image if publishing on a platform without Mermaid support.
-
-An order arrives damaged. A support assistant needs to find the order, locate its
+An order arrives damaged, a support assistant needs to find the order, locate its
 invoice, read the returns policy, determine eligibility, and help an operator
 request a refund. The useful work crosses a database, object storage and another
-service. A convincing demo needs to handle what happens when a response is lost,
-a tool fails, or the model skips a step.
+service, isn't that what a developer's daily life quickly became?
 
-We built this experiment with **MCPack 0.9.0**, an Apache-2.0 library for running
+Now don't forget team work and individual capabilities, we can have different visions
+and backgrounds, including expertise in different languages, platforms etc.
+
+We built an experiment with **MCPack 0.9.0**, an Apache-2.0 library for running
 manifest-defined MCP tools, resources and prompts with persistent Node and Python
 workers. The library is available as
 [`@modern-software/mcpack`](https://www.npmjs.com/package/@modern-software/mcpack).
@@ -21,14 +20,15 @@ expose one MCP endpoint, and carry the same tool implementation from local testi
 to an AWS deployment. MCPack hosts those capabilities; the agent and the business
 rules remain separate parts of the application.
 
-## What MCP adds—and what MCPack handles
+## What MCP adds, and what MCPack handles
 
-Model Context Protocol gives clients a standard way to discover and use a
-server's capabilities. Tools perform operations, resources expose contextual
-content, and prompts provide reusable message templates. A client can inspect
-the catalog without embedding a custom integration for each handler.
+**Model Context Protocol** gives clients a standard way to discover and use a
+server's capabilities for AI applications. Tools perform operations, resources
+expose contextual content, and prompts provide reusable message templates.
+A client can inspect the catalog without embedding a custom integration for
+each handler.
 
-MCPack adds an execution layer behind that interface. A JSON manifest identifies
+MCPack adds an execution layer behind that interface, a JSON manifest identifies
 workers, code modules, handler names, argument schemas and execution limits.
 Node owns the MCP endpoint and routes calls to the configured language processes.
 It does not translate Python into JavaScript. Both interpreters must be installed,
@@ -36,7 +36,7 @@ along with the application's dependencies.
 
 Workers are persistent: the host does not launch an interpreter for every call.
 Factories can initialize connection pools once and retain state until shutdown or
-restart. That amortizes startup cost, but process memory is temporary; records that
+restart. That lowers startup cost, but process memory is temporary; records that
 must survive a restart belong in a database or another durable store.
 
 ## The experiment
@@ -44,7 +44,7 @@ must survive a restart belong in a database or another durable store.
 We seeded 2,000 synthetic customers, 10,000 orders, order items and shipment events,
 plus a historical rejected claim. Object storage holds 101 text invoices and a
 policy. A fixed business date keeps eligibility tests repeatable. Refunds are
-simulated—there is no real money or customer data.
+simulated, there is no real money or customer data.
 
 | Worker    | Language | Responsibility                                                         |
 | --------- | -------- | ---------------------------------------------------------------------- |
@@ -85,17 +85,18 @@ The sample's application package pins the published version:
 }
 ```
 
-That is an excerpt, not the complete application dependency list. The committed
+Of course there are more dependencies on the list. The committed
 lockfile also pins transitive dependencies. The sample Dockerfile installs them
 with `npm ci`; it does not compile the MCPack repository. Python application
 dependencies have a separate hash-checked requirements file and virtual environment.
 
 The server imports `serveHttp` and `bearerToken` from the public package. It loads
 the manifest, configures host/origin checks and bounded request admission, and
-closes the runtime on termination. Handlers live alongside the manifest rather
+closes the runtime on termination. Handlers are defined in the manifest rather
 than inside the hosting library.
 
-From a clone of the repository, with Node and Docker Compose installed:
+To witness the wonder just clone the repository, with Node and Docker Compose
+installed run the following commands:
 
 ```bash
 npm ci
@@ -106,12 +107,12 @@ node examples/support-desk/test/load.mjs
 
 The root install provides test-client dependencies. The container separately
 installs the application's pinned package. Local PostgreSQL, an S3 emulator and
-the simulator make this route independent of an AWS account or paid model calls.
+the simulator make this convenient if you don't want to spend a dime to test MCPack.
 Initial image and dependency downloads still need internet access.
 
-Connect Inspector to `http://localhost:3000/mcp` with the disposable local header
-`Authorization: Bearer local-mcp-only`. The ports bind to loopback. Follow the
-[sample guide](https://github.com/ModernSoftware/mcpack/blob/main/examples/support-desk/README.md)
+Connect the [Inspector](https://github.com/modelcontextprotocol/inspector) to `http://localhost:3000/mcp`
+with the disposable local header `Authorization: Bearer local-mcp-only`.
+The ports bind to loopback. Follow the [sample guide](https://github.com/ModernSoftware/mcpack/blob/main/examples/support-desk/README.md)
 for the optional agent, setup details and teardown commands.
 
 ## Concurrency is a workload decision
@@ -129,47 +130,51 @@ worker or make blocking Python code nonblocking. Separate processes or service
 replicas are the relevant scaling tools for those workloads.
 
 When a worker fails, optional bounded recovery can start a replacement. It does
-not replay the interrupted operation. If a remote service committed a refund
+not replay the interrupted operation, for the sake of safety you know, it is on your
+hands to monitor failed tool execution, for instance, if a remote service committed a refund
 before the connection failed, restarting a process cannot establish whether the
-refund happened. That requires an application-level idempotency key and a status
+refund happened, that requires an application-level idempotency key and a status
 lookup.
 
 ## The most valuable failure was in the agent workflow
 
 In an early interactive run, the model found document references and proceeded
-toward a refund without visibly reading the invoice and policy. Discovery alone
+toward a refund without visibly reading the invoice and policy; yep you know, AI
+isn't Intelligent enough just yet, but it does well so far. Discovery alone
 was not evidence retrieval. A plausible final answer was not enough to establish
 that the intended workflow had occurred.
 
-We added a deterministic approval wrapper in the sample agent. It fetches the order
+So, we added a deterministic approval wrapper in the sample agent, it fetches the order
 and claim, reads invoice and policy, checks eligibility and amount consistency,
 and presents the evidence before asking the operator to type `APPROVE`.
 Denial must produce no refund submission. After an uncertain response, the wrapper
 reconciles status with the original key rather than generating a replacement.
 
 Tests cover denial, approval, repeated approval and lost-response reconciliation.
-The refund service independently enforces its business constraints. The wrapper
+The refund service independently enforces its business constraints, the wrapper
 is still a client-side safeguard: another client holding the server's service
 token can invoke the raw submission tool. Mandatory approval across all clients
 would require a durable server-side authorization workflow.
 
 The lesson is to put required invariants in application code and tests. An MCP
 runtime can validate inputs and manage execution; it cannot infer what constitutes
-a legitimate refund or guarantee that a model understands a policy.
+a legitimate refund or guarantee that a model understands a policy, that's why
+MCPack's still a success, it properly served what was asked to, the decisions
+are LLM's business.
 
 ## What we measured
 
-Two measurements answer different questions. A synthetic benchmark estimates
+Two measurements answer different questions, a synthetic benchmark estimates
 hosting overhead. The Support Desk load script measures one real application
 read path: `get_order_details` over MCP HTTP and PostgreSQL.
 
-A maintainer-reported application run produced:
+The application run produced:
 
 | Requests | Concurrent callers | Failures |    p50 |    p95 |    p99 | Requests/s |
 | -------: | -----------------: | -------: | -----: | -----: | -----: | ---------: |
 |      100 |                  4 |        0 | 202 ms | 452 ms | 886 ms |      18.09 |
 
-This is a smoke measurement, not a capacity certification. Its supplied output
+Beware that this is a smoke measurement, not a capacity certification. Its supplied output
 did not preserve endpoint, hardware, image digest or server sizing, so we cannot
 attribute those numbers specifically to local Docker or AWS. It excludes model
 inference and does not benchmark every tool or S3 access.
@@ -194,21 +199,21 @@ These are historical candidate measurements, not a new benchmark of the registry
 image or a comparison against other frameworks.
 
 For a deployment decision, rerun representative operations from outside the
-server's network. Record versions, image digest, CPU/memory limits, worker and
-connection-pool settings, request mix, latency percentiles and rejected requests.
-Include sustained load, failures and recovery. Short successful runs do not
+server's network, record versions, image digest, CPU/memory limits, worker and
+connection-pool settings, request mix, latency percentiles and rejected requests,
+include sustained load, failures and recovery. Short successful runs do not
 establish maximum connections, catalog size, memory safety or linear scaling.
 
 ## Taking the same application to AWS
 
 The accompanying Terraform experiment uses an HTTPS Application Load Balancer,
 ECS Fargate, RDS PostgreSQL, S3, Secrets Manager and a separate internal refund
-service. The maintainer exercised the AWS endpoint through Inspector and a
-Bedrock-backed agent, as well as running locally. The sample's
+service. We exercised the AWS endpoint through the [Inspector](https://github.com/modelcontextprotocol/inspector)
+and a Bedrock-backed agent using Noval Pro model, as well as running locally. The sample's
 [AWS runbook](https://github.com/ModernSoftware/mcpack/blob/main/examples/support-desk/AWS.md)
 builds the application image, pushes it to ECR and deploys by digest.
 
-Bearer-token checks protect the MCP endpoint; TLS terminates at the load balancer.
+Bearer-token checks protect the MCP endpoint, TLS terminates at the load balancer,
 Task roles provide AWS permissions, and separate database roles narrow access.
 MCPack provides schema validation, host/origin controls and bounded queues,
 requests, outputs and execution times. Worker processes are not security sandboxes
@@ -216,16 +221,21 @@ or per-worker memory quotas. Container/platform limits and trusted handler code
 remain essential. The sample does not implement multi-user OAuth or tenant-level
 authorization.
 
-AWS resources are billable. The local route is intended for people who want to
+Observe that AWS resources are billable, the local route is intended for people who want to
 explore without provisioning cloud services; the optional model can still incur
 provider charges.
 
-## What developers can build next
+## What can be built next using MCPack
 
 The same arrangement can support internal operations assistants, reservation
 workflows, document lookup or data-service tooling. Teams can keep Node service
 integrations and Python document/data logic behind one capability catalog, with
-explicit runtime and application dependency ownership.
+explicit runtime and application dependency ownership. We intend to add NET and Go
+workers support in the near future to we can have a set of different tools, written in
+different languages, providing different capabilities maintained by different people
+all under the umbrella of MCPack, isn't that wonderful, so start using it now and next
+time in your organization someone dares to say you're not inclusive you can showcase
+MCPack and show how being different is not an issue anymore.
 
 MCPack also underpins the native integration work in
 [Modern MCP Forge](https://github.com/ModernSoftware/modern-mcp-forge), our development
@@ -233,11 +243,6 @@ UI. The broader Forge workflow—editing, testing and combining native capabilit
 with external MCP servers and developer bridges—is ongoing work and deserves its
 own article. MCPack deployment remains native-only; it does not become the Forge
 aggregation gateway.
-
-.NET and Go runners are future work, not features of 0.9.0. A reusable Node/Python
-container base is another possible next step: it could standardize supported
-interpreters, non-root execution and patching. A smaller image may improve pull
-and startup time; it does not inherently speed up a running tool or its database.
 
 Try the sample, replace a handler with your own integration, and report the
 workload and environment alongside any performance or reliability finding.

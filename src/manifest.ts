@@ -1,11 +1,17 @@
 import { readFile, realpath } from 'node:fs/promises';
+
 import { dirname, isAbsolute, relative, resolve } from 'node:path';
+
 import { z } from 'zod';
+
 import { Ajv2020 } from 'ajv/dist/2020.js';
+
 import { MCPackError } from './errors.js';
 
 const name = z.string().regex(/^[A-Za-z0-9_-]{1,64}$/);
+
 const json = z.json();
+
 const object = z.record(z.string(), json);
 
 const binding = {
@@ -131,41 +137,52 @@ export const ManifestSchema = z
 export async function loadProject(filename: string): Promise<LoadedProject> {
   try {
     const path = await realpath(filename);
+
     const root = dirname(path);
+
     const manifest = ManifestSchema.parse(JSON.parse(await readFile(path, 'utf8')));
 
-    if (Object.keys(manifest.workers).length === 0)
+    if (Object.keys(manifest.workers).length === 0) {
       throw new Error('At least one worker is required');
+    }
 
     for (const category of ['tools', 'resources', 'prompts'] as const) {
       const names = new Set<string>();
+
       for (const capability of manifest[category]) {
-        if (names.has(capability.name))
+        if (names.has(capability.name)) {
           throw new Error(`Duplicate ${category} name: ${capability.name}`);
+        }
 
         names.add(capability.name);
 
-        if (!Object.hasOwn(manifest.workers, capability.worker))
+        if (!Object.hasOwn(manifest.workers, capability.worker)) {
           throw new Error(`Unknown worker: ${capability.worker}`);
+        }
       }
     }
 
     const uris = manifest.resources.map((resource) => resource.uri);
 
-    if (new Set(uris).size !== uris.length) throw new Error('Duplicate resource URI');
+    if (new Set(uris).size !== uris.length) {
+      throw new Error('Duplicate resource URI');
+    }
 
     for (const prompt of manifest.prompts) {
-      if (new Set(prompt.arguments.map((arg) => arg.name)).size !== prompt.arguments.length)
+      if (new Set(prompt.arguments.map((arg) => arg.name)).size !== prompt.arguments.length) {
         throw new Error(`Duplicate prompt argument: ${prompt.name}`);
+      }
     }
 
     for (const tool of manifest.tools) validator.compile(tool.inputSchema);
 
     for (const worker of Object.values(manifest.workers)) {
-      if (isAbsolute(worker.module))
+      if (isAbsolute(worker.module)) {
         throw new Error('Worker modules must use project-relative paths');
+      }
 
       const module = await realpath(resolve(root, worker.module));
+
       const rel = relative(root, module);
 
       if (
@@ -177,12 +194,16 @@ export async function loadProject(filename: string): Promise<LoadedProject> {
       }
 
       worker.module = module;
+
       if (worker.runtime === 'python' && /[\\/]/.test(worker.executable)) {
         worker.executable = resolve(root, worker.executable);
       }
     }
 
-    return { manifest, root };
+    return {
+      manifest,
+      root,
+    };
   } catch (error) {
     throw new MCPackError(
       'INVALID_MANIFEST',
@@ -192,6 +213,7 @@ export async function loadProject(filename: string): Promise<LoadedProject> {
 }
 
 export type Manifest = z.infer<typeof ManifestSchema>;
+
 export type WorkerDefinition = Manifest['workers'][string];
 
 export interface LoadedProject {

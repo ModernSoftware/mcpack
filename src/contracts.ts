@@ -1,5 +1,6 @@
 /** Public contracts: manifest v1 and native Node module API v1. */
 export type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
+
 export type JsonObject = { [key: string]: Json };
 
 export interface TextContent {
@@ -47,4 +48,5 @@ export interface NativeWorker {
 }
 
 export type CreateWorker = (context: WorkerContext) => NativeWorker | Promise<NativeWorker>;
+
 export type Operation = 'tools' | 'resources' | 'prompts';
