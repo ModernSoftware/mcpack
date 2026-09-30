@@ -4,19 +4,46 @@ export async function createWorker(context) {
   let count = 0;
 
   const result = (value) => ({
-    content: [{ type: 'text', text: String(value) }],
-    structuredContent: { count, pid: process.pid, worker: context.workerId },
+    content: [
+      {
+        type: 'text',
+        text: String(value),
+      },
+    ],
+    structuredContent: {
+      count,
+      pid: process.pid,
+      worker: context.workerId,
+    },
   });
 
   return {
     tools: {
       async probe({ action = 'count', delay = 0 }) {
-        if (action === 'hang') await new Promise(() => {});
-        if (action === 'crash') process.exit(7);
-        if (action === 'throw') throw new Error('PRIVATE_EXCEPTION');
-        if (action === 'invalid') return { content: 'wrong' };
-        if (action === 'bigint') return { content: [], structuredContent: { value: 1n } };
-        if (action === 'business')
+        if (action === 'hang') {
+          await new Promise(() => {});
+        }
+
+        if (action === 'crash') {
+          process.exit(7);
+        }
+
+        if (action === 'throw') {
+          throw new Error('PRIVATE_EXCEPTION');
+        }
+
+        if (action === 'invalid') {
+          return { content: 'wrong' };
+        }
+
+        if (action === 'bigint') {
+          return {
+            content: [],
+            structuredContent: { value: 1n },
+          };
+        }
+
+        if (action === 'business') {
           return {
             content: [
               {
@@ -26,7 +53,9 @@ export async function createWorker(context) {
             ],
             isError: true,
           };
-        if (action === 'env')
+        }
+
+        if (action === 'env') {
           return {
             content: [
               {
@@ -39,16 +68,25 @@ export async function createWorker(context) {
               },
             ],
           };
+        }
 
         console.log('This must not reach MCP stdout');
+
         await new Promise((resolve) => setTimeout(resolve, delay));
+
         count += 1;
+
         return result(count);
       },
     },
     async close() {
-      if (context.config.hangOnClose) await new Promise(() => {});
-      if (context.config.marker) await writeFile(context.config.marker, 'closed');
+      if (context.config.hangOnClose) {
+        await new Promise(() => {});
+      }
+
+      if (context.config.marker) {
+        await writeFile(context.config.marker, 'closed');
+      }
     },
   };
 }

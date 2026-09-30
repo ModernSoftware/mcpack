@@ -26,8 +26,21 @@ Explain the problem, resulting behavior, and validation. Add meaningful regressi
 coverage when changing behavior. Preserve the shared Node/Python handler contracts or
 explain the compatibility impact. Never commit credentials or application secrets.
 
-Keep MCPack focused on native tools, resources and prompts. Forge owns development UI,
+Keep MCPack focused on native tools, resources and prompts. [Modern MCP Forge](https://github.com/ModernSoftware/modern-mcp-forge.git) owns development UI,
 external MCP integrations and language bridges. Release publication is a separate owner
 operation, described in [the release guide](docs/releasing.md).
 
 Contributions are made under the repository's Apache-2.0 license.
+
+## Integration test scheduling
+
+`npm test` runs test files sequentially (`--test-concurrency=1`). Each file can
+launch several persistent Node/Python processes; running many files together
+creates competing interpreter startups on shared CI runners. Windows runs have
+intermittently exceeded the unchanged 10-second worker startup deadline during
+that overlap, despite passing formatting and the same tests on other runners.
+
+This bounds suite-level process contention, not worker concurrency. The explicit
+concurrent-call, cancellation, queue, recovery and timeout scenarios inside each
+file still run with their original assertions. Production startup deadlines and
+worker settings are unchanged. Run `npm test` locally to match CI scheduling.

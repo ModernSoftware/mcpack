@@ -1,6 +1,9 @@
 import { ProcessWorker, type Diagnostic } from './process-worker.js';
+
 import { MCPackError, type ErrorCode } from './errors.js';
+
 import type { JsonObject, Operation } from './contracts.js';
+
 import type { LoadedProject, WorkerDefinition } from './manifest.js';
 
 /** Replaces whole process generations. Never transfers or replays their calls. */
@@ -17,7 +20,10 @@ export class WorkerSupervisor {
   private cancelDelay?: () => void;
   private recovering?: Promise<void>;
   private closing?: Promise<void>;
-  private archivedDiagnostics = { forwardedBytes: 0, droppedBytes: 0 };
+  private archivedDiagnostics = {
+    forwardedBytes: 0,
+    droppedBytes: 0,
+  };
 
   constructor(
     private id: string,
@@ -29,10 +35,14 @@ export class WorkerSupervisor {
   private createWorker(): ProcessWorker {
     if (this.worker) {
       const counters = this.worker.snapshot().diagnostics;
+
       this.archivedDiagnostics.forwardedBytes += counters.forwardedBytes;
+
       this.archivedDiagnostics.droppedBytes += counters.droppedBytes;
     }
+
     this.generation++;
+
     const worker = new ProcessWorker(
       this.id,
       this.definition,
@@ -40,19 +50,30 @@ export class WorkerSupervisor {
       this.diagnostic,
       (error) => this.failed(worker, error),
     );
+
     this.worker = worker;
+
     return worker;
   }
 
   async start(): Promise<void> {
-    if (this.state !== 'new') throw new MCPackError('WORKER_UNAVAILABLE', 'Worker already started');
+    if (this.state !== 'new') {
+      throw new MCPackError('WORKER_UNAVAILABLE', 'Worker already started');
+    }
+
     this.state = 'starting';
+
     const worker = this.createWorker();
+
     try {
       await worker.start();
+
       this.markReady(worker);
     } catch (error) {
-      if (!this.isClosed()) this.state = 'failed';
+      if (!this.isClosed()) {
+        this.state = 'failed';
+      }
+
       throw error;
     }
   }
@@ -62,31 +83,52 @@ export class WorkerSupervisor {
   }
 
   private markReady(worker: ProcessWorker): void {
-    if (this.isClosed()) throw new MCPackError('RUNTIME_CLOSED', 'Runtime closed');
-    if (worker.snapshot().state !== 'ready')
+    if (this.isClosed()) {
+      throw new MCPackError('RUNTIME_CLOSED', 'Runtime closed');
+    }
+
+    if (worker.snapshot().state !== 'ready') {
       throw new MCPackError('WORKER_UNAVAILABLE', 'Worker failed before becoming ready');
+    }
+
     this.state = 'ready';
+
     this.readySince = performance.now();
   }
 
   private failed(worker: ProcessWorker, error: MCPackError): void {
     // Old transport callbacks belong only to their own process generation.
-    if (worker !== this.worker || this.isClosed()) return;
-    this.lastFailureCode = error.code;
-    // Initial startup fails fast. Replacement startup is handled by recover().
-    if (this.state !== 'ready') return;
-    const policy = this.definition.recovery;
-    if (policy && performance.now() - this.readySince >= policy.resetAfterMs) this.attempts = 0;
-    if (!policy || this.attempts >= policy.maxRestarts) {
-      this.exhausted = Boolean(policy);
-      this.state = 'failed';
+    if (worker !== this.worker || this.isClosed()) {
       return;
     }
+
+    this.lastFailureCode = error.code;
+    // Initial startup fails fast. Replacement startup is handled by recover().
+    if (this.state !== 'ready') {
+      return;
+    }
+
+    const policy = this.definition.recovery;
+
+    if (policy && performance.now() - this.readySince >= policy.resetAfterMs) {
+      this.attempts = 0;
+    }
+
+    if (!policy || this.attempts >= policy.maxRestarts) {
+      this.exhausted = Boolean(policy);
+
+      this.state = 'failed';
+
+      return;
+    }
+
     this.state = 'restarting';
+
     this.recovering = this.recover(worker).catch(() => {
       // No detached rejected promise, even if unexpected supervision code fails.
       if (!this.isClosed()) {
         this.lastFailureCode = 'WORKER_UNAVAILABLE';
+
         this.state = 'failed';
       }
     });
@@ -96,36 +138,59 @@ export class WorkerSupervisor {
     const policy = this.definition.recovery!;
     // close() waits for process exit, including bounded forced termination.
     await previous.close();
+
     while (this.state === 'restarting') {
       if (this.attempts >= policy.maxRestarts) {
         this.exhausted = true;
+
         this.state = 'failed';
+
         return;
       }
+
       const ceiling = Math.min(policy.maxDelayMs, policy.baseDelayMs * 2 ** this.attempts);
       // Equal jitter avoids synchronized restart storms while retaining a lower bound.
       const delay = Math.ceil(ceiling * (0.5 + Math.random() * 0.5));
+
       this.nextRestartAt = Date.now() + delay;
+
       await new Promise<void>((resolve) => {
         const timer = setTimeout(resolve, delay);
+
         this.cancelDelay = () => {
           clearTimeout(timer);
+
           resolve();
         };
       });
+
       this.cancelDelay = undefined;
+
       this.nextRestartAt = null;
-      if (this.state !== 'restarting') return;
+
+      if (this.state !== 'restarting') {
+        return;
+      }
+
       this.attempts++;
+
       this.restartCount++;
+
       const worker = this.createWorker();
+
       try {
         await worker.start();
+
         this.markReady(worker);
+
         return;
       } catch (error) {
-        if (this.isClosed()) return;
+        if (this.isClosed()) {
+          return;
+        }
+
         this.lastFailureCode = error instanceof MCPackError ? error.code : 'STARTUP_FAILED';
+
         await worker.close();
       }
     }
@@ -137,15 +202,18 @@ export class WorkerSupervisor {
     input: JsonObject,
     signal?: AbortSignal,
   ): Promise<unknown> {
-    if (this.state !== 'ready')
+    if (this.state !== 'ready') {
       return Promise.reject(
         new MCPackError('WORKER_UNAVAILABLE', `Worker ${this.id} is unavailable`),
       );
+    }
+
     return this.worker!.call(kind, handler, input, signal);
   }
 
   snapshot() {
     const current = this.worker?.snapshot();
+
     return {
       state: this.state,
       active: current?.active ?? false,
@@ -170,10 +238,16 @@ export class WorkerSupervisor {
   }
 
   close(): Promise<void> {
-    if (this.closing) return this.closing;
+    if (this.closing) {
+      return this.closing;
+    }
+
     this.state = 'closed';
+
     this.cancelDelay?.();
+
     this.nextRestartAt = null;
+
     return (this.closing = Promise.all([this.worker?.close(), this.recovering]).then(() => {}));
   }
 }

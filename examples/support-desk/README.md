@@ -4,8 +4,14 @@ Investigate an order, find its invoice and policy, open a claim, and submit a
 **simulated** refund. One MCP endpoint serves persistent Node and Python workers.
 The same application runs locally or on AWS. No real customers or payments.
 
-This sample builds MCPack from this checkout, so it tests the candidate code
-before a release. It does not assume an unpublished `0.9.0` package exists.
+The default application image installs **`@modern-software/mcpack@0.9.0` from npm**
+with the committed application lockfile. It builds your tools and dependencies into
+an image without compiling MCPack. Compose and the AWS runbook use the same
+`examples/support-desk/Dockerfile`; its build context contains only this sample.
+The root `npm ci` below installs the test client's dependencies, not the server.
+
+Read [the article draft](../../docs/articles/mcpack-support-desk.md) for the
+architecture, experiment and measured results.
 
 ```mermaid
 flowchart TD
@@ -51,6 +57,24 @@ docker compose -f examples/support-desk/compose.yaml down -v
 Rerun `local.sh` to rebuild/start/reseed. Seeding preserves existing claims and
 refunds; S3 documents are reuploaded because the emulator is ephemeral.
 Docker images and dependencies require internet for the initial build.
+
+## Testing unpublished MCPack changes (maintainers)
+
+Keep the default path when evaluating the npm release. To exercise the current
+MCPack checkout instead, run from the repository root in Git Bash/Linux/macOS:
+
+```bash
+COMPOSE_PATH_SEPARATOR=: COMPOSE_FILE=compose.yaml:compose.source.yaml \
+  bash examples/support-desk/scripts/local.sh
+```
+
+The script changes into this sample before Compose reads these paths. This override
+uses the root Dockerfile's source-built `support-desk` target and its `MCPACK_ENTRY`
+setting. The default image resolves the public package import from `/project/node_modules`.
+Both modes run the same integration, load and agent approval checks in CI. They use
+the same local Compose project; switch modes sequentially, not simultaneously.
+Rerun the normal command to return to the published package. Dependency upgrades
+should update both the exact application version and lockfile in a reviewed PR.
 
 ## Dataset and capabilities
 
@@ -183,7 +207,8 @@ when you want an explicit multi-line block.
 
 ## Validation and release evidence
 
-The `Support Desk PoC` GitHub workflow builds/runs Compose, exercises both
+The `Support Desk PoC` GitHub workflow builds/runs both registry and source Compose
+variants, exercises both
 runtimes through the official MCP client, tests concurrent duplicate refunds and
 lost-response reconciliation, and validates Terraform without AWS credentials.
 The normal MCPack workflow still owns worker crash/recovery/timeout tests.

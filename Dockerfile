@@ -36,6 +36,8 @@ CMD ["serve", "/project/mcpack.json", "--transport", "http", "--host", "0.0.0.0"
 
 # Optional example workload; the default target below remains the minimal runtime.
 FROM runtime AS support-desk
+# Maintainer-only source integration; normal deployments use the sample Dockerfile.
+ENV MCPACK_ENTRY=/opt/mcpack/dist/index.js
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends python3-venv \
     && rm -rf /var/lib/apt/lists/* \

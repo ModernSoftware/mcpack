@@ -344,3 +344,10 @@ The [Support Desk PoC](examples/support-desk/README.md) combines Node and Python
 workers with PostgreSQL, S3 documents, and a simulated refund API. Run it with
 Docker Compose without AWS credentials, or use its Terraform runbook to test
 the same application over public HTTPS on AWS.
+
+### Build a real application
+
+Read [One MCP server, two languages](docs/articles/mcpack-support-desk.md), our article
+draft about the Support Desk experiment, its architecture, approval workflow and
+benchmark evidence. The [sample](examples/support-desk/README.md) now installs
+MCPack 0.9.0 from npm by default, with local Compose and an AWS deployment runbook.

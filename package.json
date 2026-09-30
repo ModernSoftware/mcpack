@@ -30,7 +30,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "test": "npm run build && node --test test/*.test.mjs",
+    "test": "npm run build && node --test --test-concurrency=1 test/*.test.mjs",
     "check": "tsc --noEmit",
     "prepack": "npm run build",
     "example": "node dist/cli.js serve examples/hello/mcpack.json",

@@ -27,6 +27,18 @@ jobs:
       - name: Import agent without model or MCP calls
         run: python -c "import runpy, sys; sys.path.insert(0, 'examples/support-desk/agent'); runpy.run_path('examples/support-desk/agent/main.py', run_name='dependency_check')"
   local:
+    name: Local services (${{ matrix.package }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package: registry
+            compose: compose.yaml
+          - package: source
+            compose: compose.yaml:compose.source.yaml
+    env:
+      COMPOSE_FILE: ${{ matrix.compose }}
+      COMPOSE_PATH_SEPARATOR: ':'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

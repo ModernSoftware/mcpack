@@ -1,7 +1,12 @@
 /** Private worker protocol. Explicitly versioned; not the public MCP protocol. */
 import { z } from 'zod';
 
-const text = z.object({ type: z.literal('text'), text: z.string() }).strict();
+const text = z
+  .object({
+    type: z.literal('text'),
+    text: z.string(),
+  })
+  .strict();
 
 export const toolResult = z
   .object({
@@ -14,7 +19,13 @@ export const toolResult = z
 export const resourceResult = z
   .object({
     contents: z.array(
-      z.object({ uri: z.string(), mimeType: z.string().optional(), text: z.string() }).strict(),
+      z
+        .object({
+          uri: z.string(),
+          mimeType: z.string().optional(),
+          text: z.string(),
+        })
+        .strict(),
     ),
   })
   .strict();
@@ -22,7 +33,14 @@ export const resourceResult = z
 export const promptResult = z
   .object({
     description: z.string().optional(),
-    messages: z.array(z.object({ role: z.enum(['user', 'assistant']), content: text }).strict()),
+    messages: z.array(
+      z
+        .object({
+          role: z.enum(['user', 'assistant']),
+          content: text,
+        })
+        .strict(),
+    ),
   })
   .strict();
 
@@ -37,7 +55,10 @@ export const parentMessage = z.discriminatedUnion('type', [
     maxOutputBytes: z.number().int().min(1024),
     config: z.record(z.string(), z.json()),
     bindings: z.array(
-      z.object({ kind: z.enum(['tools', 'resources', 'prompts']), handler: z.string() }),
+      z.object({
+        kind: z.enum(['tools', 'resources', 'prompts']),
+        handler: z.string(),
+      }),
     ),
   }),
   z.object({
@@ -48,13 +69,28 @@ export const parentMessage = z.discriminatedUnion('type', [
     handler: z.string(),
     input: z.record(z.string(), z.json()),
   }),
-  z.object({ v: z.literal(1), type: z.literal('cancel'), id: z.string() }),
-  z.object({ v: z.literal(1), type: z.literal('close') }),
+  z.object({
+    v: z.literal(1),
+    type: z.literal('cancel'),
+    id: z.string(),
+  }),
+  z.object({
+    v: z.literal(1),
+    type: z.literal('close'),
+  }),
 ]);
 
 export const childMessage = z.discriminatedUnion('type', [
-  z.object({ v: z.literal(1), type: z.literal('ready') }),
-  z.object({ v: z.literal(1), type: z.literal('result'), id: z.string(), result: z.json() }),
+  z.object({
+    v: z.literal(1),
+    type: z.literal('ready'),
+  }),
+  z.object({
+    v: z.literal(1),
+    type: z.literal('result'),
+    id: z.string(),
+    result: z.json(),
+  }),
   z.object({
     v: z.literal(1),
     type: z.literal('error'),
@@ -62,5 +98,8 @@ export const childMessage = z.discriminatedUnion('type', [
     code: z.enum(['STARTUP_FAILED', 'HANDLER_FAILED', 'INVALID_RESULT', 'OUTPUT_LIMIT_EXCEEDED']),
     message: z.string(),
   }),
-  z.object({ v: z.literal(1), type: z.literal('closed') }),
+  z.object({
+    v: z.literal(1),
+    type: z.literal('closed'),
+  }),
 ]);

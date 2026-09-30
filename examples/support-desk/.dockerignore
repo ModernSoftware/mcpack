@@ -1,0 +1,9 @@
+**
+!Dockerfile
+!app/
+!app/**
+**/node_modules
+**/__pycache__
+**/.venv
+**/.env
+**/.env.*
