@@ -28,7 +28,13 @@ test('one MCP server discovers and invokes persistent Node and Python capabiliti
 
   t.after(() => client.close());
 
-  await client.connect(transport);
+  try {
+    await client.connect(transport);
+  } catch (error) {
+    throw new Error(`Mixed server initialization failed. Server diagnostics:\n${diagnostics}`, {
+      cause: error,
+    });
+  }
 
   assert.deepEqual(
     (await client.listTools()).tools.map((tool) => tool.name),

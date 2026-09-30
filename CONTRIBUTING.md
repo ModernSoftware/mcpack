@@ -31,3 +31,16 @@ external MCP integrations and language bridges. Release publication is a separat
 operation, described in [the release guide](docs/releasing.md).
 
 Contributions are made under the repository's Apache-2.0 license.
+
+## Integration test scheduling
+
+`npm test` runs test files sequentially (`--test-concurrency=1`). Each file can
+launch several persistent Node/Python processes; running many files together
+creates competing interpreter startups on shared CI runners. Windows runs have
+intermittently exceeded the unchanged 10-second worker startup deadline during
+that overlap, despite passing formatting and the same tests on other runners.
+
+This bounds suite-level process contention, not worker concurrency. The explicit
+concurrent-call, cancellation, queue, recovery and timeout scenarios inside each
+file still run with their original assertions. Production startup deadlines and
+worker settings are unchanged. Run `npm test` locally to match CI scheduling.
