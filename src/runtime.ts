@@ -10,6 +10,16 @@ import { MCPackError } from './errors.js';
 
 import { toolResult, resourceResult, promptResult } from './wire.js';
 
+import {
+  assertToolInputLimits,
+  resolveToolInputLimits,
+  type ToolInputLimits,
+} from './input-limits.js';
+
+export interface RuntimeOptions extends ToolInputLimits {
+  diagnostic?: Diagnostic;
+}
+
 export class MCPackRuntime {
   private workers = new Map<string, WorkerSupervisor>();
   private state: 'new' | 'starting' | 'ready' | 'closed' = 'new';
@@ -19,17 +29,20 @@ export class MCPackRuntime {
   private constructor(
     readonly project: LoadedProject,
     diagnostic: Diagnostic,
+    private readonly inputLimits: Required<ToolInputLimits>,
   ) {
     for (const [id, definition] of Object.entries(project.manifest.workers)) {
       this.workers.set(id, new WorkerSupervisor(id, definition, project, diagnostic));
     }
   }
 
-  static async load(
-    path: string,
-    options: { diagnostic?: Diagnostic } = {},
-  ): Promise<MCPackRuntime> {
-    return new MCPackRuntime(await loadProject(path), options.diagnostic ?? (() => {}));
+  static async load(path: string, options: RuntimeOptions = {}): Promise<MCPackRuntime> {
+    const inputLimits = resolveToolInputLimits(options);
+    return new MCPackRuntime(
+      await loadProject(path),
+      options.diagnostic ?? (() => {}),
+      inputLimits,
+    );
   }
 
   start(): Promise<void> {
@@ -101,6 +114,8 @@ export class MCPackRuntime {
     if (!tool) {
       throw new MCPackError('NOT_FOUND', `Unknown tool: ${name}`);
     }
+
+    assertToolInputLimits(args, this.inputLimits);
 
     if (!validator.validate(tool.inputSchema, args)) {
       throw new MCPackError('INVALID_ARGUMENTS', 'Tool arguments do not match inputSchema');

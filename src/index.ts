@@ -24,6 +24,8 @@ export type { Diagnostic } from './process-worker.js';
 
 export { MCPackRuntime } from './runtime.js';
 
+export type { RuntimeOptions } from './runtime.js';
+
 export { createMcpServer } from './server.js';
 
 export { serveHttp, bearerToken } from './http.js';

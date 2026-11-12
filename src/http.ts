@@ -29,6 +29,8 @@ export interface HttpOptions {
   allowedHosts?: string[];
   allowedOrigins?: string[];
   maxBodyBytes?: number;
+  maxToolInputElements?: number;
+  maxToolInputDepth?: number;
   maxInFlight?: number;
   requestTimeoutMs?: number;
   shutdownGraceMs?: number;
@@ -49,6 +51,8 @@ const settingsSchema = z
       .max(64 * 1024 * 1024)
       .default(1024 * 1024),
     maxInFlight: z.number().int().min(1).max(10000).default(128),
+    maxToolInputElements: z.number().int().positive().default(10_000),
+    maxToolInputDepth: z.number().int().positive().default(64),
     requestTimeoutMs: z.number().int().min(1).max(600000).default(60000),
     shutdownGraceMs: z.number().int().min(0).max(30000).default(5000),
   })
@@ -185,6 +189,8 @@ export async function serveHttp(filename: string, options: HttpOptions = {}) {
 
   const runtime = await MCPackRuntime.load(filename, {
     diagnostic,
+    maxToolInputElements: settings.maxToolInputElements,
+    maxToolInputDepth: settings.maxToolInputDepth,
   });
 
   await runtime.start();
@@ -197,6 +203,7 @@ export async function serveHttp(filename: string, options: HttpOptions = {}) {
     {
       legacy: 'stateless',
       maxSubscriptions: 0,
+      maxRequestBodySize: settings.maxBodyBytes,
     },
   );
 

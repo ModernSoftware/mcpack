@@ -278,14 +278,14 @@ child processes it spawned or guarantee rollback of a database/API operation.
 
 Find the package and registry README at
 [**@modern-software/mcpack on npm**](https://www.npmjs.com/package/@modern-software/mcpack).
-This checkout prepares **0.9.0**; that version becomes installable after the release
+This checkout prepares **0.9.1**; that version becomes installable after the release
 workflow stages it and the maintainer approves publication. The npm badge shows
 registry state, which may lag this branch.
 
-Once 0.9.0 is approved:
+Once 0.9.1 is approved:
 
 ```sh
-npm install --save-exact @modern-software/mcpack@0.9.0
+npm install --save-exact @modern-software/mcpack@0.9.1
 npx mcpack validate ./mcpack.json
 npx mcpack serve ./mcpack.json --transport http --port 3000
 ```

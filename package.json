@@ -1,6 +1,6 @@
 {
   "name": "@modern-software/mcpack",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Manifest-driven MCP servers with persistent Node and Python workers, stdio and Streamable HTTP",
   "type": "module",
   "license": "Apache-2.0",
@@ -38,15 +38,16 @@
     "format:check": "prettier --check .",
     "test:package": "node test/package-smoke.mjs",
     "benchmark": "npm run build && node benchmark/run.mjs",
-    "release:check": "node scripts/release-check.mjs"
+    "release:check": "node scripts/release-check.mjs",
+    "audit:dependencies": "npm audit --audit-level=high"
   },
   "dependencies": {
-    "@modelcontextprotocol/server": "2.0.0",
-    "ajv": "^8.17.1",
-    "zod": "^4.0.0"
+    "@modelcontextprotocol/server": "2.3.0",
+    "ajv": "^8.20.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@modelcontextprotocol/client": "2.0.0",
+    "@modelcontextprotocol/client": "2.3.0",
     "@types/node": "^22.18.0",
     "prettier": "3.6.2",
     "typescript": "^5.9.2"

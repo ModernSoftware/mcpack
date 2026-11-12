@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.9.1 — security patch preparation
+
+Publication remains subject to the staged npm release workflow and maintainer approval.
+
+- Update the MCP client/server SDK to 2.3.0 and raise AJV/Zod minimums; refresh the
+  runtime lockfile to patched dependencies.
+- Bound tool arguments before AJV validation and worker serialization: 10,000
+  combined array elements/object members and 64 container levels by default.
+  Applies to the embedded API, stdio and HTTP. Oversized inputs now fail with
+  `INVALID_ARGUMENTS`; applications with larger legitimate payloads can configure
+  the limits through runtime/HTTP options.
+- Apply the configured HTTP body cap inside the SDK too; the patched SDK rejects
+  JSON-RPC batches longer than 100 messages.
+- Audit runtime dependencies on PRs, main pushes, weekly, and before npm staging;
+  high/critical advisories and audit-service failures block the check. Keep full
+  reports for review and propose dependency updates with Dependabot.
+
+The Support Desk registry example still consumes 0.9.0 until this patch is
+published. Update its pin/lock and rerun its deployment checks before using it
+as a patched production deployment.
+
 ## 0.9.0
 
 First non-prerelease distribution of the Node/Python runtime. Available on npm
