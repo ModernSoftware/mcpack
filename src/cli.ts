@@ -20,6 +20,7 @@ const usage = `Usage:
     --allow-host <hostname>       Repeat for each allowed Host (no port)
     --allow-origin <origin>       Repeat for each browser origin
     --max-body-bytes 1048576 --max-in-flight 128
+    --max-tool-input-elements 10000 --max-tool-input-depth 64
     --request-timeout-ms 60000 --shutdown-grace-ms 5000
   `;
 
@@ -56,6 +57,8 @@ async function main(): Promise<void> {
       'max-in-flight': {
         type: 'string',
       },
+      'max-tool-input-elements': { type: 'string' },
+      'max-tool-input-depth': { type: 'string' },
       'request-timeout-ms': {
         type: 'string',
       },
@@ -118,6 +121,8 @@ async function main(): Promise<void> {
       allowedOrigins: values['allow-origin'],
       maxBodyBytes: number(values['max-body-bytes']),
       maxInFlight: number(values['max-in-flight']),
+      maxToolInputElements: number(values['max-tool-input-elements']),
+      maxToolInputDepth: number(values['max-tool-input-depth']),
       requestTimeoutMs: number(values['request-timeout-ms']),
       shutdownGraceMs: number(values['shutdown-grace-ms']),
       authorize: token ? bearerToken(token) : undefined,

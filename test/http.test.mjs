@@ -100,6 +100,41 @@ async function waitFor(predicate) {
 }
 
 for (const mode of ['auto', 'legacy']) {
+  test(`HTTP ${mode}: rejects excessive tool arguments and remains usable`, async (t) => {
+    const host = await fixture(t, { maxToolInputElements: 4, maxToolInputDepth: 2 });
+    const client = await connect(t, host, mode);
+    await assert.rejects(
+      client.callTool({ name: 'primary', arguments: { values: [1, 2, 3, 4] } }),
+      /element limit/,
+    );
+    await assert.rejects(
+      client.callTool({ name: 'primary', arguments: { a: { b: {} } } }),
+      /nesting depth/,
+    );
+    assert.equal((await client.callTool({ name: 'primary' })).structuredContent.count, 1);
+  });
+}
+
+test('HTTP rejects an oversized legacy batch before dispatching any tools', async (t) => {
+  const host = await fixture(t);
+  const response = await fetch(host.url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' },
+    body: JSON.stringify(
+      Array.from({ length: 101 }, (_, id) => ({
+        jsonrpc: '2.0',
+        id,
+        method: 'tools/call',
+        params: { name: 'primary' },
+      })),
+    ),
+  });
+  assert.equal(response.status, 400);
+  const client = await connect(t, host);
+  assert.equal((await client.callTool({ name: 'primary' })).structuredContent.count, 1);
+});
+
+for (const mode of ['auto', 'legacy']) {
   test(`HTTP ${mode}: mixed capabilities, authentication on each request, persistent shared state`, async (t) => {
     const host = await serveHttp(resolve('examples/mixed/mcpack.json'), {
       port: 0,

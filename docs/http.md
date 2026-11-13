@@ -84,12 +84,14 @@ explicit request-context contract. Existing authenticated applications can still
 
 ## Limits and health
 
-| CLI option             | Default | Meaning                                                                   |
-| ---------------------- | ------: | ------------------------------------------------------------------------- |
-| `--max-body-bytes`     | 1048576 | Maximum POST body, checked for both length-declared and streamed requests |
-| `--max-in-flight`      |     128 | Concurrent admitted MCP exchanges, including authentication/body reads    |
-| `--request-timeout-ms` |   60000 | Entire HTTP exchange, including authentication, upload and response       |
-| `--shutdown-grace-ms`  |    5000 | Drain period before aborting remaining HTTP exchanges                     |
+| CLI option                  | Default | Meaning                                                                   |
+| --------------------------- | ------: | ------------------------------------------------------------------------- |
+| `--max-body-bytes`          | 1048576 | Maximum POST body, checked for both length-declared and streamed requests |
+| `--max-in-flight`           |     128 | Concurrent admitted MCP exchanges, including authentication/body reads    |
+| `--max-tool-input-elements` |   10000 | Combined object members and array slots in tool arguments                 |
+| `--max-tool-input-depth`    |      64 | Maximum nested containers in tool arguments, counting the root as one     |
+| `--request-timeout-ms`      |   60000 | Entire HTTP exchange, including authentication, upload and response       |
+| `--shutdown-grace-ms`       |    5000 | Drain period before aborting remaining HTTP exchanges                     |
 
 Native `timeoutMs` and `maxQueue` still apply inside each worker. HTTP request deadlines
 are independent: whichever deadline expires first wins. Excess HTTP admission returns
