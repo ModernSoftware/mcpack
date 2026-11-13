@@ -24,7 +24,7 @@ jobs:
         run: npm audit --json --audit-level=high > dependency-audit.json
       - name: Retain full report, including lower-severity findings
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dependency-audit
           path: dependency-audit.json
