@@ -18,7 +18,7 @@ jobs:
         python: ['3.11', '3.13']
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python }}
       - run: python -m pip install --require-hashes -r examples/support-desk/agent/requirements.txt
@@ -54,7 +54,7 @@ jobs:
           REFUND_API_URL: http://localhost:3001
           REFUND_API_TOKEN: local-refund-only
       - run: node examples/support-desk/test/load.mjs
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - run: pip install --require-hashes -r examples/support-desk/agent/requirements.txt
