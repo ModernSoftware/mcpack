@@ -27,7 +27,7 @@ jobs:
           ref: 13f0a39967eddf5ed44804d2f012e7d776f790f5
           path: forge
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '22'
       - name: Setup Bun
